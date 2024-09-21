@@ -7,8 +7,6 @@ RUN echo 'export PS1="workdir@PFE: \w\$ "' >> ~/.bashrc
 # Set environment variables
 ENV DEBIAN_FRONTEND=noninteractive
 
-WORKDIR /PFE/
-
 # Install required packages
 RUN apt-get update && apt-get install -y \
     wget \
@@ -48,15 +46,11 @@ RUN wget https://software.intel.com/sites/landingpage/pintool/downloads/pin-3.5-
 # Set environment variable for Pin
 ENV PIN_ROOT /opt/pin-3.5-97503-gac534ca30-gcc-linux
 
-COPY . .
-RUN git init && git submodule init
+COPY ../ /PFE
 
-# GEM5 configuration with GCC 10
-RUN update-alternatives --set gcc /usr/bin/gcc-10 \
-    && update-alternatives --set g++ /usr/bin/g++-10 \
-    && cd tools/gem5 \
-    && scons build/X86/gem5.opt -j32 \
-    && build/X86/gem5.opt configs/learning_gem5/part1/simple.py
+WORKDIR /PFE
+
+RUN git init && git submodule init
 
 # ChampSim configuration
 RUN cd tools/ChampSim \
@@ -67,11 +61,25 @@ RUN cd tools/ChampSim \
     && make -j32 \
     && cd ../..
 
+# GEM5 configuration with GCC 10
+#RUN update-alternatives --set gcc /usr/bin/gcc-10 \
+#    && update-alternatives --set g++ /usr/bin/g++-10 \
+#    && cd tools/gem5 \
+#    && scons build/X86/gem5.opt -j32 \
+#    && build/X86/gem5.opt configs/learning_gem5/part1/simple.py
+
 # Scarab configuration
-RUN update-alternatives --set gcc /usr/bin/gcc-7 \
-    && update-alternatives --set g++ /usr/bin/g++-7 \
-    && cd tools/scarab/bin \
-    && pip3 install -r requirements.txt \
-    && cd ../src \
-    && make -j32 \
-    && cd ../../..
+#RUN update-alternatives --set gcc /usr/bin/gcc-7 \
+#    && update-alternatives --set g++ /usr/bin/g++-7 \
+#    && cd tools/scarab/bin \
+#    && pip3 install -r requirements.txt \
+#    && cd ../src \
+#    && make -j32 \
+#    && cd ../../..
+
+# Make the Python script executable
+RUN chmod +x /PFE/scripts/pfe.py
+RUN pip3 install -r scripts/requirements.txt
+
+# Add the directory containing the script to the PATH
+ENV PATH="/PFE/scripts:${PATH}"
