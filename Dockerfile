@@ -46,29 +46,32 @@ RUN wget https://software.intel.com/sites/landingpage/pintool/downloads/pin-3.5-
 # Set environment variable for Pin
 ENV PIN_ROOT /opt/pin-3.5-97503-gac534ca30-gcc-linux
 
+ENV PATH="/PFE/scripts:${PATH}"
+
 COPY ../ /PFE
 
 WORKDIR /PFE
 
-RUN git init && git submodule init
+#RUN bash setup.sh
+
+RUN chmod 777 /PFE
 
 # ChampSim configuration
-RUN cd tools/ChampSim \
-    #&& git submodule update --init \
-    && ./vcpkg/bootstrap-vcpkg.sh \
-    && ./vcpkg/vcpkg install \
-    && ./config.sh champsim_config.json \
-    && make -j32 \
-    && cd ../..
-
-# GEM5 configuration with GCC 10
+#RUN cd tools/ChampSim \
+#    && ./vcpkg/bootstrap-vcpkg.sh \
+#    && ./vcpkg/vcpkg install \
+#    && ./config.sh champsim_config.json \
+#    && make -j32 \
+#    && cd ..
+#
+## GEM5 configuration with GCC 10
 #RUN update-alternatives --set gcc /usr/bin/gcc-10 \
 #    && update-alternatives --set g++ /usr/bin/g++-10 \
 #    && cd tools/gem5 \
 #    && scons build/X86/gem5.opt -j32 \
 #    && build/X86/gem5.opt configs/learning_gem5/part1/simple.py
-
-# Scarab configuration
+#
+## Scarab configuration with GCC 7
 #RUN update-alternatives --set gcc /usr/bin/gcc-7 \
 #    && update-alternatives --set g++ /usr/bin/g++-7 \
 #    && cd tools/scarab/bin \
@@ -78,8 +81,8 @@ RUN cd tools/ChampSim \
 #    && cd ../../..
 
 # Make the Python script executable
-RUN chmod +x /PFE/scripts/pfe.py
+RUN chmod +x scripts/pfe.py
 RUN pip3 install -r scripts/requirements.txt
 
-# Add the directory containing the script to the PATH
-ENV PATH="/PFE/scripts:${PATH}"
+RUN git config --global --add safe.directory '*'
+
