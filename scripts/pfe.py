@@ -5,14 +5,14 @@ from bs4 import BeautifulSoup
 import subprocess
 
 # Directory where traces will be stored
-trace_dir = "../tools/ChampSim/ChampSimTraces"
-config_file = "../tools/champsim_config.json"
-output_dir = "../tools/ChampSim/SimulationOutputs"
+PATH_ChampSim = "../tools/ChampSim/"
+trace_dir = PATH_ChampSim + "ChampSimTraces"
+config_file = PATH_ChampSim + "champsim_config.json"
+output_dir = PATH_ChampSim + "SimulationOutputs"
 
 # List of specific URLs to download the traces
 trace_urls = [
-    "https://dpc3.compas.cs.stonybrook.edu/champsim-traces/speccpu/400.perlbench-41B.champsimtrace.xz",
-    "https://dpc3.compas.cs.stonybrook.edu/champsim-traces/speccpu/400.perlbench-50B.champsimtrace.xz"
+    "https://dpc3.compas.cs.stonybrook.edu/champsim-traces/speccpu/400.perlbench-41B.champsimtrace.xz"
 ]
 
 # Function to download specific trace files
@@ -62,7 +62,7 @@ def exec_traces_with_policy(policy):
             
             # Command to execute ChampSim
             command = [
-                "./bin/champsim", 
+                "./" + PATH_ChampSim + "bin/champsim", 
                 "--warmup_instructions", "200000000",
                 "--simulation_instructions", "500000000",
                 trace_path
@@ -83,7 +83,7 @@ def exec_all_policies():
 
 # Main function to execute all steps
 def main():
-    download_traces()
+    #download_traces()
     exec_all_policies()
 
 if __name__ == "__main__":
