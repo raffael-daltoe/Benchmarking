@@ -3,7 +3,7 @@
 set -e
 
 BUILD=0
-ROOT=1  # Set ROOT to 1 to force root user execution
+ROOT=0 
 IMAGE="pfe"
 WORK="$PWD"
 
@@ -15,15 +15,13 @@ image_exists() {
 }
 
 if [[ $(image_exists) -eq 0 ]] || [[ $BUILD -eq 1 ]]; then
-    docker build -t $IMAGE .
+    docker build -f Dockerfile --build-arg UID=$(id -u) --build-arg GID=$(id -g) -t pfe .
 fi 
 
-RUN_CMD=(docker run -it --rm --network host --user root)  # Force root user here
+RUN_CMD=(docker run -it --rm --network host --privileged)
 
 if [ $ROOT -eq 0 ]; then
     RUN_CMD+=(-u $(id -u):$(id -g))
-    # Mount /etc/passwd and /etc/group to allow user and group name resolution
-    RUN_CMD+=(-v /etc/passwd:/etc/passwd:ro -v /etc/group:/etc/group:ro)
 fi
 
 if [ "$WORK" == "$PWD" ]; then

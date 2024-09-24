@@ -1,11 +1,19 @@
 # Use Ubuntu as the base image
 FROM ubuntu:20.04
 
-# Set a custom bash prompt
-RUN echo 'export PS1="workdir@PFE: \w\$ "' >> ~/.bashrc
+ARG UID=1000
+ARG GID=1000
+
+# Set default shell during Docker image build to bash
+SHELL ["/bin/bash", "-c"]
 
 # Set environment variables
 ENV DEBIAN_FRONTEND=noninteractive
+
+# Add Ubuntu Toolchain PPA for GCC 11
+RUN apt-get update && apt-get install -y software-properties-common \
+    && add-apt-repository ppa:ubuntu-toolchain-r/test \
+    && apt-get update
 
 # Install required packages
 RUN apt-get update && apt-get install -y \
@@ -19,24 +27,35 @@ RUN apt-get update && apt-get install -y \
     unzip \
     tar \
     pkg-config \
-    gcc-7 \
-    g++-7 \
-    gcc-10 \
-    g++-10 \
+    gcc-11 \
+    g++-11 \
     cmake \
     scons \
     m4 \
-    && update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-7 60 \
-    && update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-10 70 \
-    && update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-7 60 \
-    && update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-10 70
-
-# Manually download and install Clang 5.0
-RUN wget https://releases.llvm.org/5.0.1/clang+llvm-5.0.1-x86_64-linux-gnu-ubuntu-16.04.tar.xz \
-    && tar -xf clang+llvm-5.0.1-x86_64-linux-gnu-ubuntu-16.04.tar.xz \
-    && mv clang+llvm-5.0.1-x86_64-linux-gnu-ubuntu-16.04 /opt/clang-5.0 \
-    && ln -s /opt/clang-5.0/bin/clang /usr/bin/clang \
-    && rm clang+llvm-5.0.1-x86_64-linux-gnu-ubuntu-16.04.tar.xz
+    sudo \
+    libtinfo-dev \
+    gcc-11-multilib \
+    g++-11-multilib \
+    gdb \
+    libstdc++-11-dev \
+    libxext6 libxext-dev \
+    autotools-dev \
+    libc6 libc6-dev-i386 \
+    libexpat-dev \
+    libftdi1-dev \
+    libglib2.0-dev \
+    libgmp-dev \
+    libmpc-dev \
+    libmpfr-dev \
+    libncurses5 libncurses5-dev \
+    libpixman-1-dev \
+    libstdc++6 libstdc++6-11-dbg \
+    libtinfo5 \
+    libusb-1.0-0-dev \
+    libxft2  \
+    clang \
+    && update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-11 70 \
+    && update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-11 70 
 
 # Download and install Pin 3.5
 RUN wget https://software.intel.com/sites/landingpage/pintool/downloads/pin-3.5-97503-gac534ca30-gcc-linux.tar.gz \
@@ -52,37 +71,24 @@ COPY ../ /PFE
 
 WORKDIR /PFE
 
+# Create a user and group with the same UID and GID as the host user
+RUN groupadd -g $GID -o PFE
+
+RUN useradd -u $UID -m -g PFE -G plugdev PFE \
+	&& echo 'PFE ALL = NOPASSWD: ALL' > /etc/sudoers.d/PFE \
+	&& chmod 0440 /etc/sudoers.d/PFE
+
+USER PFE
+
 #RUN bash setup.sh
 
-RUN chmod 777 /PFE
+#RUN chmod 777 /PFE
 
-# ChampSim configuration
-#RUN cd tools/ChampSim \
-#    && ./vcpkg/bootstrap-vcpkg.sh \
-#    && ./vcpkg/vcpkg install \
-#    && ./config.sh champsim_config.json \
-#    && make -j32 \
-#    && cd ..
-#
-## GEM5 configuration with GCC 10
-#RUN update-alternatives --set gcc /usr/bin/gcc-10 \
-#    && update-alternatives --set g++ /usr/bin/g++-10 \
-#    && cd tools/gem5 \
-#    && scons build/X86/gem5.opt -j32 \
-#    && build/X86/gem5.opt configs/learning_gem5/part1/simple.py
-#
-## Scarab configuration with GCC 7
-#RUN update-alternatives --set gcc /usr/bin/gcc-7 \
-#    && update-alternatives --set g++ /usr/bin/g++-7 \
-#    && cd tools/scarab/bin \
-#    && pip3 install -r requirements.txt \
-#    && cd ../src \
-#    && make -j32 \
-#    && cd ../../..
+# Set a custom bash prompt
+#RUN echo 'export PS1="workdir@PFE: \w\$ "' >> ~/.bashrc
 
 # Make the Python script executable
-RUN chmod +x scripts/pfe.py
+#RUN chmod +x scripts/pfe.py
 RUN pip3 install -r scripts/requirements.txt
 
 RUN git config --global --add safe.directory '*'
-
