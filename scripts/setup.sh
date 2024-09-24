@@ -32,7 +32,7 @@ export PATH=/opt/pin-3.5-97503-gac534ca30-gcc-linux:$PATH
 #echo "###############    Starting Pin Configuration    ###############"
 #update-alternatives --set gcc /usr/bin/gcc-11 
 #update-alternatives --set g++ /usr/bin/g++-11 
-#cd /opt/pin-3.5-97503-gac534ca30-gcc-linux/source/tools
+#cd pin-3.5-97503-gac534ca30-gcc-linux/source/tools
 #make -s -j32
 
 # ChampSim Configuration

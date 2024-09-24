@@ -59,7 +59,7 @@ RUN apt-get update && apt-get install -y \
 
 # Download and install Pin 3.5
 RUN wget https://software.intel.com/sites/landingpage/pintool/downloads/pin-3.5-97503-gac534ca30-gcc-linux.tar.gz \
-    && tar -xf pin-3.5-97503-gac534ca30-gcc-linux.tar.gz -C /opt/ \
+    && tar -xf pin-3.5-97503-gac534ca30-gcc-linux.tar.gz \
     && rm pin-3.5-97503-gac534ca30-gcc-linux.tar.gz
 
 # Set environment variable for Pin
