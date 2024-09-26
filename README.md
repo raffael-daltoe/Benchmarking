@@ -23,3 +23,20 @@ running:
     ```
 
 This will prepare the environment for running simulations.
+
+## ChampSim
+
+To utilize ChampSim, first navigate to the `scripts` directory:
+    
+    ```bash
+    cd scripts/setup.sh
+    ```
+Then, execute the python script:
+
+    ```bash
+    python3 champsim.py <number of threads>
+    ```
+
+The key advantage of this script, is the use of threads, basically, as the 
+currently version of ChampSim doesn't allows the use of threads in only one 
+simulation, this script create N simulations, with N the number of threads.
