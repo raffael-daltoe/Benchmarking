@@ -49,7 +49,6 @@ def download_traces():
 
 # Function to modify the replacement policy in the configuration
 def modify_replacement_policy(policy,threads):
-    
     S1_replacement.acquire()
     
     with open(config_file, 'r') as file:
@@ -63,8 +62,6 @@ def modify_replacement_policy(policy,threads):
     subprocess.run(["./config.sh", "champsim_config.json"], cwd=PATH_ChampSim)
 
     subprocess.run(["make", f"-j{threads}"], cwd=PATH_ChampSim, stdout=subprocess.DEVNULL, stderr=subprocess.STDOUT)
-
-    S1_replacement.release()
 
     print(f"Changed replacement policy to {policy}.")
 
@@ -85,20 +82,26 @@ def exec_single_trace_with_policy(trace_file, policy):
     # Execute ChampSim and capture output in a specific file for each trace
     print(f"Executing ChampSim for {trace_file} with policy {policy}...")
     with open(output_file, 'w') as outfile:
+        S1_replacement.release()
         subprocess.run(command, stdout=outfile, stderr=outfile)
     
     print(f"Output: {trace_file} with policy {policy} stored in {output_file}")
 
 # Function to execute all policies (drrip, ship, srrip) for all traces
 def exec_all_policies(threads):
+    # Command to create the folder
+    if not (os.path.exists(output_dir)):
+        subprocess.run(["mkdir", output_dir])
+
     # Create a thread pool and submit tasks
     with ThreadPoolExecutor(max_workers=threads) as executor:
         for policy in policies:
-            modify_replacement_policy(policy,threads)  # Modify config for each policy
+            modify_replacement_policy(policy,threads) 
             for trace_file in os.listdir(trace_dir):
                 if trace_file.endswith('.champsimtrace.xz'):
                     executor.submit(exec_single_trace_with_policy, 
                                     trace_file, policy)
+                    time.sleep(0.5)
 
 # Main function to execute all steps
 def main(threads):
