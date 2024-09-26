@@ -12,14 +12,14 @@ To configure the environment, follow these steps:
 Docker container:
 
     ```bash
-    ./scripts/docker.bash
+    $ ./scripts/docker.bash
     ```
 
 2. Once the container is created, initialize the setup inside the image by 
 running:
 
     ```bash
-    ./scripts/setup.sh
+    $ ./scripts/setup.sh
     ```
 
 This will prepare the environment for running simulations.
@@ -29,13 +29,13 @@ This will prepare the environment for running simulations.
 1.  To utilize ChampSim, first navigate to the `scripts` directory:
     
     ```bash
-    cd scripts/setup.sh
+    $ cd scripts/setup.sh
     ```
     
 2.  Then, execute the python script:
 
     ```bash
-        python3 champsim.py <number of threads>
+    $ python3 champsim.py <number of threads>
     ```
 
 The key advantage of this script, is the use of threads, basically, as the 
