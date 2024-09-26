@@ -33,26 +33,26 @@ RUN apt-get update && apt-get install -y \
     scons \
     m4 \
     sudo \
-    libtinfo-dev \
+#    libtinfo-dev \
     gcc-11-multilib \
     g++-11-multilib \
     gdb \
-    libstdc++-11-dev \
-    libxext6 libxext-dev \
-    autotools-dev \
-    libc6 libc6-dev-i386 \
-    libexpat-dev \
-    libftdi1-dev \
-    libglib2.0-dev \
-    libgmp-dev \
-    libmpc-dev \
-    libmpfr-dev \
-    libncurses5 libncurses5-dev \
-    libpixman-1-dev \
-    libstdc++6 libstdc++6-11-dbg \
-    libtinfo5 \
-    libusb-1.0-0-dev \
-    libxft2  \
+#    libstdc++-11-dev \
+#    libxext6 libxext-dev \
+#    autotools-dev \
+#    libc6 libc6-dev-i386 \
+#    libexpat-dev \
+#    libftdi1-dev \
+#    libglib2.0-dev \
+#    libgmp-dev \
+#    libmpc-dev \
+#    libmpfr-dev \
+#    libncurses5 libncurses5-dev \
+#    libpixman-1-dev \
+#    libstdc++6 libstdc++6-11-dbg \
+#    libtinfo5 \
+#    libusb-1.0-0-dev \
+#    libxft2  \
     clang \
     && update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-11 70 \
     && update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-11 70 
