@@ -75,10 +75,7 @@ The default value is 1,000,000.
 For example, you could trace 200,000 instructions of the program ls, after 
 skipping the first 100,000 instructions, with this command:
 
-    ```bash
     pin -t obj/champsim_tracer.so -o traces/ls_trace.champsim -s 100000 -t 200000 -- ls
-    ```
-
 
 Traces created with the champsim_tracer.so are approximately 64 bytes per 
 instruction, but they generally compress down to less than a byte per 
