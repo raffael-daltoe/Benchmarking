@@ -36,6 +36,7 @@ cd ..
 cd ChampSim/tracer/pin
 make -j32
 mkdir traces
+mkdir codes
 
 # Scarab Configuration
 #echo "###############    Starting Scarab Configuration    ###############"
