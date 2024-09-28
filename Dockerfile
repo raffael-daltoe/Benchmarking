@@ -33,39 +33,12 @@ RUN apt-get update && apt-get install -y \
     scons \
     m4 \
     sudo \
-#    libtinfo-dev \
     gcc-11-multilib \
     g++-11-multilib \
     gdb \
-#    libstdc++-11-dev \
-#    libxext6 libxext-dev \
-#    autotools-dev \
-#    libc6 libc6-dev-i386 \
-#    libexpat-dev \
-#    libftdi1-dev \
-#    libglib2.0-dev \
-#    libgmp-dev \
-#    libmpc-dev \
-#    libmpfr-dev \
-#    libncurses5 libncurses5-dev \
-#    libpixman-1-dev \
-#    libstdc++6 libstdc++6-11-dbg \
-#    libtinfo5 \
-#    libusb-1.0-0-dev \
-#    libxft2  \
     clang \
     && update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-11 70 \
     && update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-11 70 
-
-# Download and install Pin 3.5
-RUN wget https://software.intel.com/sites/landingpage/pintool/downloads/pin-3.5-97503-gac534ca30-gcc-linux.tar.gz \
-    && tar -xf pin-3.5-97503-gac534ca30-gcc-linux.tar.gz \
-    && rm pin-3.5-97503-gac534ca30-gcc-linux.tar.gz
-
-# Set environment variable for Pin
-ENV PIN_ROOT /opt/pin-3.5-97503-gac534ca30-gcc-linux
-
-ENV PATH="/PFE/scripts:${PATH}"
 
 COPY ../ /PFE
 
@@ -78,17 +51,21 @@ RUN useradd -u $UID -m -g PFE -G plugdev PFE \
 	&& echo 'PFE ALL = NOPASSWD: ALL' > /etc/sudoers.d/PFE \
 	&& chmod 0440 /etc/sudoers.d/PFE
 
+# Setup Intel Pin
+RUN wget -P /opt https://software.intel.com/sites/landingpage/pintool/downloads/pin-3.22-98547-g7a303a835-gcc-linux.tar.gz --no-check-certificate && \
+    tar -xf /opt/pin-3.22-98547-g7a303a835-gcc-linux.tar.gz -C /opt && \
+    rm /opt/pin-3.22-98547-g7a303a835-gcc-linux.tar.gz && \
+    chown -R PFE:PFE /opt/pin-3.22-98547-g7a303a835-gcc-linux
+
+
 USER PFE
 
-#RUN bash setup.sh
+# Set environment variable for Pin
+ENV PIN_ROOT /opt/pin-3.22-98547-g7a303a835-gcc-linux
 
-#RUN chmod 777 /PFE
+# Add Pin tool to PATH for PFE user 
+RUN echo "export PATH=/opt/pin-3.22-98547-g7a303a835-gcc-linux:\$PATH" >> ~/.bashrc
 
-# Set a custom bash prompt
-#RUN echo 'export PS1="workdir@PFE: \w\$ "' >> ~/.bashrc
-
-# Make the Python script executable
-#RUN chmod +x scripts/pfe.py
 RUN pip3 install -r scripts/requirements.txt
 
 RUN git config --global --add safe.directory '*'
