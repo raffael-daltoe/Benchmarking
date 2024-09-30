@@ -10,13 +10,14 @@ SHELL ["/bin/bash", "-c"]
 # Set environment variables
 ENV DEBIAN_FRONTEND=noninteractive
 
-# Add Ubuntu Toolchain PPA for GCC 11
-RUN apt-get update && apt-get install -y software-properties-common \
+# Add Ubuntu Toolchain PPA
+RUN apt-get update && apt-get install -y software-properties-common lsb-release \
     && add-apt-repository ppa:ubuntu-toolchain-r/test \
     && apt-get update
 
-# Install required packages
+# Install required packages for building GCC from source
 RUN apt-get update && apt-get install -y \
+    software-properties-common \
     wget \
     build-essential \
     python3 \
@@ -27,45 +28,74 @@ RUN apt-get update && apt-get install -y \
     unzip \
     tar \
     pkg-config \
-    gcc-11 \
-    g++-11 \
-    cmake \
     scons \
     m4 \
-    sudo \
+    make \
+    gcc-11 \
+    g++-11 \
     gcc-11-multilib \
     g++-11-multilib \
+    libsnappy-dev \
+    libconfig++-dev \
     gdb \
     clang \
+    libgmp-dev \
+    libmpfr-dev \
+    libmpc-dev \
+    flex \
+    bison \
+    openssl \
+    sudo \
     && update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-11 70 \
-    && update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-11 70 
+    && update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-11 70
+
+# Add Kitware APT repository for the latest CMake
+RUN apt-get update && \
+    apt-get install -y wget gpg && \
+    wget -O - https://apt.kitware.com/keys/kitware-archive-latest.asc | apt-key add - && \
+    apt-add-repository 'deb https://apt.kitware.com/ubuntu/ focal main' && \
+    apt-get update && \
+    apt-get install -y cmake && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
+
+# Install GCC 7 from PPA and set up alternatives
+RUN apt-get update && \
+    apt-get install -y gcc-7 g++-7 gcc-7-multilib g++-7-multilib && \
+    update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-7 50 && \
+    update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-7 50
 
 COPY ../ /PFE
 
 WORKDIR /PFE
 
 # Create a user and group with the same UID and GID as the host user
-RUN groupadd -g $GID -o PFE
+RUN groupadd -g $GID -o PFE \
+    && useradd -u $UID -m -g PFE -G plugdev,sudo PFE
 
-RUN useradd -u $UID -m -g PFE -G plugdev PFE \
-	&& echo 'PFE ALL = NOPASSWD: ALL' > /etc/sudoers.d/PFE \
-	&& chmod 0440 /etc/sudoers.d/PFE
+# Set no password for sudo for user PFE
+RUN echo "PFE ALL=(ALL) NOPASSWD: ALL" >> /etc/sudoers.d/pfe && \
+    chmod 0440 /etc/sudoers.d/pfe
+
+# Change ownership of the alternatives directories to allow the user to switch GCC versions
+RUN chown -R PFE:PFE /var/lib/dpkg /var/lib/apt /var/cache/apt /var/log/apt /var/cache/debconf /etc/apt /etc/alternatives
 
 # Setup Intel Pin
-RUN wget -P /opt https://software.intel.com/sites/landingpage/pintool/downloads/pin-3.22-98547-g7a303a835-gcc-linux.tar.gz --no-check-certificate && \
-    tar -xf /opt/pin-3.22-98547-g7a303a835-gcc-linux.tar.gz -C /opt && \
-    rm /opt/pin-3.22-98547-g7a303a835-gcc-linux.tar.gz && \
-    chown -R PFE:PFE /opt/pin-3.22-98547-g7a303a835-gcc-linux
-
-
-USER PFE
+RUN wget -P /opt http://software.intel.com/sites/landingpage/pintool/downloads/pin-3.15-98253-gb56e429b1-gcc-linux.tar.gz --no-check-certificate && \
+    tar -xf /opt/pin-3.15-98253-gb56e429b1-gcc-linux.tar.gz -C /opt && \
+    rm /opt/pin-3.15-98253-gb56e429b1-gcc-linux.tar.gz && \
+    chown -R PFE:PFE /opt/pin-3.15-98253-gb56e429b1-gcc-linux
 
 # Set environment variable for Pin
-ENV PIN_ROOT /opt/pin-3.22-98547-g7a303a835-gcc-linux
+ENV PIN_ROOT /opt/pin-3.15-98253-gb56e429b1-gcc-linux
 
-# Add Pin tool to PATH for PFE user 
-RUN echo "export PATH=/opt/pin-3.22-98547-g7a303a835-gcc-linux:\$PATH" >> ~/.bashrc
+RUN echo "export PATH=/opt/pin-3.15-98253-gb56e429b1-gcc-linux:\$PATH" >> /home/PFE/.bashrc
 
+# Install Python dependencies
 RUN pip3 install -r scripts/requirements.txt
 
+# Allow PFE to run without restrictions within the container
 RUN git config --global --add safe.directory '*'
+
+# Switch to PFE user as the final step
+USER PFE

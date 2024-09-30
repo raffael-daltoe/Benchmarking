@@ -25,18 +25,23 @@ done
 
 # ChampSim Configuration
 echo "###############    Starting ChampSim Configuration    ###############"
+update-alternatives --set gcc /usr/bin/gcc-11 
+update-alternatives --set g++ /usr/bin/g++-11
 cd tools/ChampSim 
 ./vcpkg/bootstrap-vcpkg.sh 
 ./vcpkg/vcpkg install 
 ./config.sh champsim_config.json 
-make -j32 
-cd ..
+make -j32 -s
+cd tracer/cvp_converter
+g++ cvp2champsim.cc -o cvp_tracer 
+cd ../../..
 
 # Intel PIN Configuration
 cd ChampSim/tracer/pin
-make -j32
+make -j32 -s
 mkdir traces
 mkdir codes
+cd ../../../
 
 # Scarab Configuration
 #echo "###############    Starting Scarab Configuration    ###############"
@@ -45,7 +50,7 @@ mkdir codes
 #cd scarab/bin 
 #pip3 install -r requirements.txt 
 #cd ../src 
-#make -j32 
+#make -j32 -s
 #cd ../../..
 
 ### GEM5 Configuration
