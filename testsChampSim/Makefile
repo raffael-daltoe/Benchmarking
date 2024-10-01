@@ -35,7 +35,9 @@ endif
 
 # Compile the program
 compile: check-src
-	$(CC) $(CFLAGS) -o $(SRC) $(CODES_DIR)/$(SRC).cpp
+	@if [ -f $(CODES_DIR)/$(SRC).cpp ]; then \
+		$(CC) $(CFLAGS) -o $(SRC) $(CODES_DIR)/$(SRC).cpp; \
+	fi
 
 convert-pin: check-src
 	@if [ -x $(SRC) ]; then \

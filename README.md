@@ -34,6 +34,12 @@ This will prepare the environment for running simulations.
     
 2.  Then, you can choose these options in Makefile:
     
+    If you want to execute only one program by time, i.e. compile, convert-pin,
+    and trace in only command you can do:
+    ```bash
+    make SRC=example
+    ```
+
     To compile the code C++ is not necessary to put '.cpp':
     ```bash
     make compile SRC=example
