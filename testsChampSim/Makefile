@@ -17,7 +17,7 @@ PIN = pin
 OBJ-INTEL64 = $(PIN_TRACER_DIR)/obj-intel64/champsim_tracer.so
 BIN_CHAMPSIM = $(CHAMPSIM_DIR)/bin/champsim
 
-# How much <warmup_instructions> and <simulation_instructions> below
+# PARAMETERS TO CHANGE FOR PYTHON SCRIPT
 #####################################################
 
 WARMUP_INSTRUCTIONS = 20000							
@@ -26,7 +26,7 @@ SIMULATION_INSTRUCTIONS = 500000
 #####################################################
 
 # Default target
-all: check-src compile trace
+all: check-src compile convert-pin trace
 
 check-src:
 ifeq ($(strip $(SRC)),)
@@ -35,14 +35,21 @@ endif
 
 # Compile the program
 compile: check-src
-	$(CC) $(CFLAGS) -o $(CODES_DIR)/$(SRC) $(CODES_DIR)/$(SRC).cpp
+	$(CC) $(CFLAGS) -o $(SRC) $(CODES_DIR)/$(SRC).cpp
 
-trace: compile
-	$(PIN) -t $(OBJ-INTEL64) -o $(TRACES_DIR)/$(SRC).champsimtrace -- \
-	./$(CODES_DIR)/$(SRC)
-
+convert-pin: check-src
+	@if [ -x $(SRC) ]; then \
+		$(PIN) -t $(OBJ-INTEL64) -o $(TRACES_DIR)/$(SRC).champsimtrace -- \
+		./$(SRC); \
+	else \
+		$(PIN) -t $(OBJ-INTEL64) -o $(TRACES_DIR)/$(SRC).champsimtrace -- \
+		$(SRC); \
+	fi
 	xz -zf $(TRACES_DIR)/$(SRC).champsimtrace
-	$(BIN_CHAMPSIM) $(TRACES_DIR)/$(SRC).champsimtrace.xz
+
+trace: check-src
+	$(BIN_CHAMPSIM) $(TRACES_DIR)/$(SRC).champsimtrace.xz > \
+	$(SIMULATION_OUTPUTS)/$(SRC).txt
 
 trace-all:
 	python3 champsim.py $(nproc) $(CHAMPSIM_DIR) $(TRACES_DIR) \
@@ -50,6 +57,6 @@ trace-all:
 	$(WARMUP_INSTRUCTIONS) $(SIMULATION_INSTRUCTIONS)
 
 clean:
-	find $(CODES_DIR) -type f ! -name '*.cpp' -exec rm -f {} +
+	find . -type f ! -name '*.cpp' ! -name 'Makefile' ! -name '*.py' -exec rm -f {} +
 	rm -f $(SIMULATION_OUTPUTS)/*
 

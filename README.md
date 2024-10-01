@@ -29,55 +29,38 @@ This will prepare the environment for running simulations.
 1.  To utilize ChampSim, first navigate to the `scripts` directory:
     
     ```bash
-    cd scripts
+    cd testsChampSim
     ```
     
-2.  Then, execute the python script:
-
+2.  Then, you can choose these options in Makefile:
+    
+    To compile the code C++ is not necessary to put '.cpp':
     ```bash
-    python3 champsim.py <number of threads>
+    make compile SRC=example
     ```
+    
+    This step now will convert the program in a way that ChampSim can read, it 
+    works with C++ executables and commands in linux:
+    ```bash
+    make convert-pin SRC=example
+    ```
+    
+    The final step call the binary of champsim and give the output of the test:
+    ```bash
+    make trace SRC=example
+    ```
+    
+    Is possible to use the script in python too by the Makefile, the parameters
+    to execute the python script can be changed in Makefile, the parameters are
+    warmup_instructions, simulation_instructions and nproc that was configured
+    before to .bashrc, to execute:
+    ```bash
+    make trace-all
+    ``` 
+
 
 The key advantage of this script, is the use of threads, basically, as the 
 currently version of ChampSim doesn't allows the use of threads in only one 
 simulation, this script create N simulations, with N the number of threads.
 
-## Intel Pin
-IntelIntel Pin is a dynamic binary instrumentation tool, which means it allows 
-you to trace, analyze, and modify the behavior of a program as it runs.
-The script ``setup.sh`` in scripts create a folder called traces and the another
-one called codes.
-
-1.  To utilize Intel Pin, first navigate to the `tracer` directory:
-    
-    ```bash
-    cd tools/ChampSim/tracer/pin
-    ```
-
-2.  Now is necessary to choose which program you will use, for example ls, cat,
-or even one executable in C, to trace a program C or C++, is mandatory to 
-compile first and create a executable. 
-
-The tracer has three options you can set:
-```
--o
-Specify the output file for your trace.
-The default is default_trace.champsim
-
--s <number>
-Specify the number of instructions to skip in the program before tracing begins.
-The default value is 0.
-
--t <number>
-The number of instructions to trace, after -s instructions have been skipped.
-The default value is 1,000,000.
-```
-For example, you could trace 200,000 instructions of the program ls, after 
-skipping the first 100,000 instructions, with this command:
-
-    pin -t obj-intel64/champsim_tracer.so -o traces/ls_trace.champsim -s 100000 -t 200000 -- ls
-
-Traces created with the champsim_tracer.so are approximately 64 bytes per 
-instruction, but they generally compress down to less than a byte per 
-instruction using xz compression.
 

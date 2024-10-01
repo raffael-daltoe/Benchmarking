@@ -97,5 +97,8 @@ RUN pip3 install -r scripts/requirements.txt
 # Allow PFE to run without restrictions within the container
 RUN git config --global --add safe.directory '*'
 
+# Define the number of cores
+ENV nproc 32
+
 # Switch to PFE user as the final step
 USER PFE
