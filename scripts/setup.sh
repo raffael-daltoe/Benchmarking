@@ -39,8 +39,6 @@ cd ../../..
 # Intel PIN Configuration
 cd ChampSim/tracer/pin
 make -j32 -s
-mkdir traces
-mkdir codes
 cd ../../../
 
 # Scarab Configuration
