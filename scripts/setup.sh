@@ -45,14 +45,12 @@ cd ../../../
 echo "###############    Starting Scarab Configuration    ###############"
 update-alternatives --set gcc /usr/bin/gcc-7 
 update-alternatives --set g++ /usr/bin/g++-7 
-cd scarab/bin 
-pip3 install -r requirements.txt 
-cd ../src 
+cd scarab/src
 make -j${nproc} -s
 cd deps/dynamorio
 cmake .
 make -j32
-cd ../../..
+cd ../../../..
 
 ### GEM5 Configuration
 echo "###############    Starting GEM5 Configuration    ###############"
@@ -60,5 +58,5 @@ update-alternatives --set gcc /usr/bin/gcc-11
 update-alternatives --set g++ /usr/bin/g++-11 
 cd gem5 
 echo | scons build/X86/gem5.opt -j${nproc}  # Skip the prompt
-build/X86/gem5.opt configs/learning_gem5/part1/simple.py
+#build/X86/gem5.opt configs/learning_gem5/part1/simple.py
 cd ../

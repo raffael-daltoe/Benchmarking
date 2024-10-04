@@ -49,6 +49,7 @@ RUN apt-get update && apt-get install -y \
     libgmp-dev \
     libmpfr-dev \
     libmpc-dev \
+    libcapstone-dev \
     flex \
     bison \
     doxygen \
