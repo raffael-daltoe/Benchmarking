@@ -22,6 +22,7 @@ RUN apt-get update && apt-get install -y \
     build-essential \
     python3 \
     python3-pip \
+    python3-sphinx \
     git \
     curl \
     zip \
@@ -44,6 +45,7 @@ RUN apt-get update && apt-get install -y \
     libmpc-dev \
     flex \
     bison \
+    doxygen \
     openssl \
     sudo \
     && update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-11 70 \

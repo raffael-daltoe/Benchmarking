@@ -31,31 +31,34 @@ cd tools/ChampSim
 ./vcpkg/bootstrap-vcpkg.sh 
 ./vcpkg/vcpkg install 
 ./config.sh champsim_config.json 
-make -j32 -s
+make -j${nproc} -s
 cd tracer/cvp_converter
 g++ cvp2champsim.cc -o cvp_tracer 
 cd ../../..
 
 # Intel PIN Configuration
 cd ChampSim/tracer/pin
-make -j32 -s
+make -j${nproc} -s
 cd ../../../
 
 # Scarab Configuration
-#echo "###############    Starting Scarab Configuration    ###############"
-#update-alternatives --set gcc /usr/bin/gcc-7 
-#update-alternatives --set g++ /usr/bin/g++-7 
-#cd scarab/bin 
-#pip3 install -r requirements.txt 
-#cd ../src 
-#make -j32 -s
-#cd ../../..
+echo "###############    Starting Scarab Configuration    ###############"
+update-alternatives --set gcc /usr/bin/gcc-7 
+update-alternatives --set g++ /usr/bin/g++-7 
+cd scarab/bin 
+pip3 install -r requirements.txt 
+cd ../src 
+make -j${nproc} -s
+cd deps/dynamorio
+cmake .
+make -j32
+cd ../../..
 
 ### GEM5 Configuration
 #echo "###############    Starting GEM5 Configuration    ###############"
 #update-alternatives --set gcc /usr/bin/gcc-10 
 #update-alternatives --set g++ /usr/bin/g++-10 
 #cd gem5 
-#echo | scons build/X86/gem5.opt -j32  # Skip the prompt
+#echo | scons build/X86/gem5.opt -j${nproc}  # Skip the prompt
 #build/X86/gem5.opt configs/learning_gem5/part1/simple.py
 #cd ../

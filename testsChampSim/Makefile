@@ -1,4 +1,6 @@
-# Variables
+# Author: Raffael Rocha Daltoe
+# Polytech Montpellier - 2024
+
 CC = g++
 CFLAGS =
 
