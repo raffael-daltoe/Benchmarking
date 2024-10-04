@@ -42,6 +42,7 @@ compile: check-src
 	fi
 
 convert-pin: check-src
+	mkdir -p $(TRACES_DIR)
 	@if [ -x $(SRC) ]; then \
 		$(PIN) -t $(OBJ-INTEL64) -o $(TRACES_DIR)/$(SRC).champsimtrace -- \
 		./$(SRC); \
@@ -52,6 +53,7 @@ convert-pin: check-src
 	xz -zf $(TRACES_DIR)/$(SRC).champsimtrace
 
 trace: check-src
+	mkdir -p $(SIMULATION_OUTPUTS)
 	$(BIN_CHAMPSIM) $(TRACES_DIR)/$(SRC).champsimtrace.xz > \
 	$(SIMULATION_OUTPUTS)/$(SRC).txt
 
@@ -62,5 +64,5 @@ trace-all:
 
 clean:
 	find . -type f ! -name '*.cpp' ! -name 'Makefile' ! -name '*.py' -exec rm -f {} +
-	rm -f $(SIMULATION_OUTPUTS)/*
+	rm -rf $(SIMULATION_OUTPUTS)
 

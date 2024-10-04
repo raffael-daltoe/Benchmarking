@@ -55,10 +55,10 @@ make -j32
 cd ../../..
 
 ### GEM5 Configuration
-#echo "###############    Starting GEM5 Configuration    ###############"
-#update-alternatives --set gcc /usr/bin/gcc-10 
-#update-alternatives --set g++ /usr/bin/g++-10 
-#cd gem5 
-#echo | scons build/X86/gem5.opt -j${nproc}  # Skip the prompt
-#build/X86/gem5.opt configs/learning_gem5/part1/simple.py
-#cd ../
+echo "###############    Starting GEM5 Configuration    ###############"
+update-alternatives --set gcc /usr/bin/gcc-11 
+update-alternatives --set g++ /usr/bin/g++-11 
+cd gem5 
+echo | scons build/X86/gem5.opt -j${nproc}  # Skip the prompt
+build/X86/gem5.opt configs/learning_gem5/part1/simple.py
+cd ../

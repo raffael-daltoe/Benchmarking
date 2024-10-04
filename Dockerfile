@@ -23,6 +23,12 @@ RUN apt-get update && apt-get install -y \
     python3 \
     python3-pip \
     python3-sphinx \
+    python3-dev \
+    python-is-python3 \
+    python3-pydot \
+    pip \
+    python3-venv \
+    black \
     git \
     curl \
     zip \
@@ -47,6 +53,16 @@ RUN apt-get update && apt-get install -y \
     bison \
     doxygen \
     openssl \
+    zlib1g \
+    zlib1g-dev \
+    libprotobuf-dev \
+    protobuf-compiler \
+    libprotoc-dev \
+    libgoogle-perftools-dev \
+    libboost-all-dev \
+    libhdf5-serial-dev \
+    libpng-dev \
+    libelf-dev \
     sudo \
     && update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-11 70 \
     && update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-11 70
@@ -88,19 +104,19 @@ RUN wget -P /opt http://software.intel.com/sites/landingpage/pintool/downloads/p
     rm /opt/pin-3.15-98253-gb56e429b1-gcc-linux.tar.gz && \
     chown -R PFE:PFE /opt/pin-3.15-98253-gb56e429b1-gcc-linux
 
+# Switch to PFE user as the final step
+USER PFE
+
 # Set environment variable for Pin
-ENV PIN_ROOT /opt/pin-3.15-98253-gb56e429b1-gcc-linux
+ENV PIN_ROOT=/opt/pin-3.15-98253-gb56e429b1-gcc-linux
 
 RUN echo "export PATH=/opt/pin-3.15-98253-gb56e429b1-gcc-linux:\$PATH" >> /home/PFE/.bashrc
 
 # Install Python dependencies
-RUN pip3 install -r scripts/requirements.txt
+RUN pip install -r scripts/requirements.txt
 
 # Allow PFE to run without restrictions within the container
 RUN git config --global --add safe.directory '*'
 
 # Define the number of cores
-ENV nproc 32
-
-# Switch to PFE user as the final step
-USER PFE
+ENV nproc=32

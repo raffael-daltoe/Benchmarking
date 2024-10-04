@@ -6,7 +6,6 @@ CFLAGS =
 
 SCARAB_DIR = ../tools/scarab
 CODES_DIR = codes
-TRACES_DIR = traces
 SIMULATION_OUTPUTS = sim_outputs
 PARAM_DIR = param
 
@@ -44,6 +43,7 @@ compile: check-param check-param
 
 # Launch a complete program
 launch: 
+	mkdir -p $(SIMULATION_OUTPUTS)
 	python3 $(SCARAB_DIR)/bin/scarab_launch.py --program $(PROGRAM) \
 	--params $(PARAM) --simdir $(SIMULATION_OUTPUTS) \
 	--scarab_args='--$(SCARAB_ARGS) --pintool_args'--$(PINTOOL_ARGS)
@@ -52,4 +52,4 @@ launch:
 clean:
 	find . -type f ! -name '*.cpp' ! -name 'Makefile' ! -name '*.py' \
 	! -name '*.in' -exec rm -f {} +
-	rm -f $(SIMULATION_OUTPUTS)/*
+	rm -rf $(SIMULATION_OUTPUTS)
