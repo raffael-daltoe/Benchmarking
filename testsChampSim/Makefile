@@ -1,7 +1,8 @@
 # Author: Raffael Rocha Daltoe
 # Polytech Montpellier - 2024
 
-CC = g++
+CC = gcc
+CPP = g++
 CFLAGS =
 
 CHAMPSIM_DIR = ../tools/ChampSim
@@ -22,8 +23,8 @@ BIN_CHAMPSIM = $(CHAMPSIM_DIR)/bin/champsim
 # PARAMETERS TO CHANGE FOR PYTHON SCRIPT
 #####################################################
 
-WARMUP_INSTRUCTIONS = 20000							
-SIMULATION_INSTRUCTIONS = 500000
+WARMUP_INSTRUCTIONS = none							
+SIMULATION_INSTRUCTIONS = 4000000000
 
 #####################################################
 
@@ -39,16 +40,18 @@ endif
 compile: check-src
 	@if [ -f $(CODES_DIR)/$(SRC).cpp ]; then \
 		$(CC) $(CFLAGS) -o $(SRC) $(CODES_DIR)/$(SRC).cpp; \
+	elif [ -f $(CODES_DIR)/$(SRC).c ]; then \
+		$(CPP) $(CFLAGS) -o $(SRC) $(CODES_DIR)/$(SRC).c; \
 	fi
 
 convert-pin: check-src
 	mkdir -p $(TRACES_DIR)
 	@if [ -x $(SRC) ]; then \
-		$(PIN) -t $(OBJ-INTEL64) -o $(TRACES_DIR)/$(SRC).champsimtrace -- \
-		./$(SRC); \
+		$(PIN) -t $(OBJ-INTEL64) -o $(TRACES_DIR)/$(SRC).champsimtrace  \
+		-t $(SIMULATION_INSTRUCTIONS) -- ./$(SRC); \
 	else \
-		$(PIN) -t $(OBJ-INTEL64) -o $(TRACES_DIR)/$(SRC).champsimtrace -- \
-		$(SRC); \
+		$(PIN) -t $(OBJ-INTEL64) -o $(TRACES_DIR)/$(SRC).champsimtrace  \
+		-t $(SIMULATION_INSTRUCTIONS) -- $(SRC); \
 	fi
 	xz -zf $(TRACES_DIR)/$(SRC).champsimtrace
 
@@ -62,7 +65,10 @@ trace-all:
 	$(CHAMPSIM_DIR)/champsim_config.json $(SIMULATION_OUTPUTS) \
 	$(WARMUP_INSTRUCTIONS) $(SIMULATION_INSTRUCTIONS)
 
-clean:
-	find . -type f ! -name '*.cpp' ! -name 'Makefile' ! -name '*.py' -exec rm -f {} +
+clean_outputs:
 	rm -rf $(SIMULATION_OUTPUTS)
 
+clean: clean_outputs
+	find . -type f ! -name '*.cpp' ! -name '*.c' ! -name 'Makefile' ! -name '*.py' -exec rm -f {} +
+
+#python3 champsim.py 32 ../tools/ChampSim traces ../tools/ChampSim/champsim_config.json sim_outputs 10000 5000000000 ; make SRC=cache ; python3 champsim.py 32 ../tools/ChampSim traces ../tools/ChampSim/champsim_config.json sim_outputs 10000 5000000000

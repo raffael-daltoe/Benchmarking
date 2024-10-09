@@ -49,23 +49,32 @@ def modify_replacement_policy(policy, config_file, champ_sim_path, threads):
 
     subprocess.run(["./config.sh", "champsim_config.json"], cwd=champ_sim_path)
 
-    subprocess.run(["make", f"-j{threads}"], cwd=champ_sim_path, stdout=subprocess.DEVNULL, stderr=subprocess.STDOUT)
+    subprocess.run(["make", f"-j{threads}"], cwd=champ_sim_path, 
+                    stdout=subprocess.DEVNULL, stderr=subprocess.STDOUT)
 
     print(f"Changed replacement policy to {policy}.")
 
 # Function to execute a single trace with a specific replacement policy
-def exec_single_trace_with_policy(trace_file, policy, trace_dir, output_dir, champ_sim_path, warmup_instructions, simulation_instructions):
+def exec_single_trace_with_policy(trace_file, policy, trace_dir, output_dir, 
+                champ_sim_path, warmup_instructions, simulation_instructions):
     trace_name = os.path.splitext(trace_file)[0]
     trace_path = os.path.join(trace_dir, trace_file)
     output_file = os.path.join(output_dir, f"{trace_name}_{policy}_output.txt")
 
-    # Command to execute ChampSim
-    command = [
-        os.path.join(champ_sim_path, "bin/champsim"),
-        "--warmup_instructions", str(warmup_instructions),
-        "--simulation_instructions", str(simulation_instructions),
-        trace_path
-    ]
+   # Base command to execute ChampSim
+    command = [os.path.join(champ_sim_path, "bin/champsim")]
+
+    # Add warmup_instructions if provided
+    if warmup_instructions:
+        command.extend(["--warmup_instructions", str(warmup_instructions)])
+    
+    # Add simulation_instructions if provided
+    if simulation_instructions:
+        command.extend(["--simulation_instructions", 
+                                                str(simulation_instructions)])
+    
+    # Always add the trace path at the end
+    command.append(trace_path)
 
     # Execute ChampSim and capture output in a specific file for each trace
     print(f"Executing ChampSim for {trace_file} with policy {policy}...")
@@ -76,7 +85,8 @@ def exec_single_trace_with_policy(trace_file, policy, trace_dir, output_dir, cha
     print(f"Output: {trace_file} with policy {policy} stored in {output_file}")
 
 # Function to execute all policies (drrip, ship, srrip) for all traces
-def exec_all_policies(trace_dir, output_dir, champ_sim_path, config_file, trace_urls, warmup_instructions, simulation_instructions, threads):
+def exec_all_policies(trace_dir, output_dir, champ_sim_path, config_file, 
+            trace_urls, warmup_instructions, simulation_instructions, threads):
     # Create output directory if not exists
     if not os.path.exists(output_dir):
         os.makedirs(output_dir)
@@ -86,18 +96,29 @@ def exec_all_policies(trace_dir, output_dir, champ_sim_path, config_file, trace_
     # Create a thread pool and submit tasks
     with ThreadPoolExecutor(max_workers=threads) as executor:
         for policy in policies:
-            modify_replacement_policy(policy, config_file, champ_sim_path, threads)
+            modify_replacement_policy(policy, config_file, champ_sim_path, 
+                                                                        threads)
             for trace_file in os.listdir(trace_dir):
                 if trace_file.endswith('.champsimtrace.xz'):
                     executor.submit(exec_single_trace_with_policy, 
-                                    trace_file, policy, trace_dir, output_dir, champ_sim_path,
-                                    warmup_instructions, simulation_instructions)
+                                    trace_file, policy, trace_dir, output_dir, 
+                                    champ_sim_path, warmup_instructions, 
+                                    simulation_instructions)
                     time.sleep(0.5)
+
+def is_number(value):
+    try:
+        int(value)
+        return True
+    except ValueError:
+        return False
 
 # Main function to execute all steps
 def main():
-    if len(sys.argv) != 8:
-        print("Usage: python3 script.py <number_of_threads> <champsim_path> <trace_dir> <config_file> <output_dir> <warmup_instructions> <simulation_instructions>")
+    if len(sys.argv) < 6:
+        print("Usage: python3 script.py <number_of_threads> <champsim_path> \
+              <trace_dir> <config_file> <output_dir> <warmup_instructions> \
+              <simulation_instructions>")
         sys.exit(1)
 
     try:
@@ -113,15 +134,21 @@ def main():
     trace_dir = sys.argv[3]
     config_file = sys.argv[4]
     output_dir = sys.argv[5]
-    warmup_instructions = int(sys.argv[6])
-    simulation_instructions = int(sys.argv[7])
+
+    warmup_instructions = int(sys.argv[6]) if len(sys.argv) > 6 \
+        and is_number(sys.argv[6]) else None
+    simulation_instructions = int(sys.argv[7]) if len(sys.argv) > 7 \
+        and is_number(sys.argv[7]) else None
 
     # Define the list of trace URLs to download
     trace_urls = [
         "https://dpc3.compas.cs.stonybrook.edu/champsim-traces/speccpu/400.perlbench-41B.champsimtrace.xz"
+        #"https://dpc3.compas.cs.stonybrook.edu/champsim-traces/speccpu/400.perlbench-50B.champsimtrace.xz"
     ]
 
-    exec_all_policies(trace_dir, output_dir, champ_sim_path, config_file, trace_urls, warmup_instructions, simulation_instructions, threads)
+    exec_all_policies(trace_dir, output_dir, champ_sim_path, config_file, 
+                      trace_urls, warmup_instructions, simulation_instructions, 
+                      threads)
 
 if __name__ == "__main__":
     main()

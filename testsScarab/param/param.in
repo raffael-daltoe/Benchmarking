@@ -8,7 +8,7 @@
 ## Simulation Parameters
 --mode                          full
 --model                         cmp
---sim_limit                     none
+--sim_limit                     100
 
 ## Core Parameters
 
@@ -17,7 +17,7 @@
 
 
 ### Fetch Stage
---fetch_off_path_ops            1
+--fetch_off_path_ops            0
 --fetch_across_cache_lines      1
 
 # Will break the packet upon a taken branch.
@@ -215,7 +215,7 @@
 ## Stats and Params
 --dump_params                   1
 --dump_stats                    1
---dump_trace                    0
+--dump_trace                    1
 
 ####################################
 --set_off_path_confirmed        1

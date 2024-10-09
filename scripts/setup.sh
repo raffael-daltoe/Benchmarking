@@ -47,10 +47,9 @@ update-alternatives --set gcc /usr/bin/gcc-7
 update-alternatives --set g++ /usr/bin/g++-7 
 cd scarab/src
 make -j${nproc} -s
-cd deps/dynamorio
-cmake .
-make -j32
-cd ../../../..
+cd deps/dynamorio/
+cmake . && make -j32
+cd ../../../../
 
 ### GEM5 Configuration
 echo "###############    Starting GEM5 Configuration    ###############"
