@@ -1,7 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#define SIZE 50
+#define SIZE 1000
 
 void matrix_multiplication(int **mat1, int **mat2, int **result) {
     for (int i = 0; i < SIZE; i++) {

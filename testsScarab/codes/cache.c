@@ -24,7 +24,7 @@ int main() {
         sum += array[i];
     }
 
-    printf("Sum of array elements: %ld\n", sum);
+    //printf("Sum of array elements: %ld\n", sum);
     free(array);
 
     return 0;

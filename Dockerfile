@@ -84,9 +84,9 @@ RUN apt-get update && \
     update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-7 50 && \
     update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-7 50
 
-COPY ../ /PFE
+COPY . /PFE
 
-WORKDIR /PFE
+WORKDIR /PFE/
 
 # Create a user and group with the same UID and GID as the host user
 RUN groupadd -g $GID -o PFE \
@@ -119,5 +119,8 @@ RUN pip install -r scripts/requirements.txt
 # Allow PFE to run without restrictions within the container
 RUN git config --global --add safe.directory '*'
 
+RUN sudo ln -s /usr/bin/python3 /usr/local/bin/python2
+
 # Define the number of cores
 ENV nproc=32
+ENV SCARAB_ENABLE_MEMTRACE=1

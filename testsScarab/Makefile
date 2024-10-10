@@ -11,7 +11,6 @@ CODES_DIR = codes
 SIMULATION_OUTPUTS = sim_outputs
 PARAM_DIR = param
 TRACE_DIR = traces
-ATUAL_DIR = 
 
 PARAM ?=
 PROGRAM ?=
@@ -22,12 +21,12 @@ PROGRAM ?=
 ENABLE_ASLR  ?=
 SCARAB_ARGS  ?=
 PINTOOL_ARGS ?=
-SIMULATION_INSTRUCTIONS = 100
+SIMULATION_INSTRUCTIONS = 396990
 
 #####################################################
 
 # Default target
-all: compile check-param check-program launch
+all: compile check-param check-program launch-traces
 
 check-param:
 ifeq ($(strip $(PARAM)),)
@@ -48,11 +47,16 @@ compile: check-program
 		$(CPP) $(CFLAGS) -o $(PROGRAM) $(CODES_DIR)/$(PROGRAM).c; \
 	fi
 
-trace-program: check-program
+trace-program: compile
+	mkdir -p $(TRACE_DIR)
 	./$(DYNAMORIO_DIR)/bin64/drrun -root $(DYNAMORIO_DIR) \
-	-t drcachesim -offline \
-	-outdir $(TRACE_DIR)/ \
-	-- $(PROGRAM)
+		-t drcachesim -offline \
+		-outdir $(TRACE_DIR)/ \
+		-- $(PROGRAM)
+	cd $(TRACE_DIR) && \
+	bash ../convert-trace/run_portabilize_trace.sh && \
+	bash ../convert-trace/run_update_trace.sh
+
 
 # Launch a complete program
 launch: 
@@ -62,16 +66,28 @@ launch:
 	--scarab_args='--$(SCARAB_ARGS) --pintool_args'--$(PINTOOL_ARGS)
 
 launch-traces: check-param
-	mkdir -p $(SIMULATION_OUTPUTS)
-	cp $(PARAM) PARAMS.in 
+	@mkdir -p $(SIMULATION_OUTPUTS)
+	@cp $(PARAM) PARAMS.in 
+	# Find the correct trace directory for the program inside traces/
+	@TRACE_DIR_PATH=$(shell cd $(TRACE_DIR) && find . -maxdepth 1 -type d -name "drmemtrace.$(PROGRAM).*" | head -n 1) && \
+	if [ -z "$$TRACE_DIR_PATH" ]; then \
+		echo "Error: Trace directory not found for program $(PROGRAM)"; \
+		rm PARAMS.in; \
+		exit 1; \
+	fi && \
 	./$(SCARAB_DIR)/src/scarab --frontend memtrace --fetch_off_path_ops 0 \
-	--cbp_trace_r0=$(TRACE_DIR) --sim_limit=$(SIMULATION_INSTRUCTIONS) \
-	--memtrace_modules_log=$(SIMULATION_OUTPUTS)
-	rm PARAMS.in
+	--cbp_trace_r0=$(TRACE_DIR)/$$TRACE_DIR_PATH/trace \
+	--inst_limit=$(SIMULATION_INSTRUCTIONS) \
+	--memtrace_modules_log=$(TRACE_DIR)/$$TRACE_DIR_PATH/bin
+	@rm PARAMS.in
+
+
+
 
 
 clean:
 	find . -type f ! -name '*.cpp' ! -name 'Makefile' ! -name '*.py' \
-	! -name '*.in' ! -name '*.c' -exec rm -f {} +
+	! -name '*.in' ! -name '*.c' ! -name '*.sh' ! -name '*.bash' \
+	-exec rm -f {} +
 	rm -rf $(TRACE_DIR)/*.dir
 	rm -rf $(SIMULATION_OUTPUTS)
