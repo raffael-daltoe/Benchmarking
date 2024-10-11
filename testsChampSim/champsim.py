@@ -99,12 +99,11 @@ def exec_all_policies(trace_dir, output_dir, champ_sim_path, config_file,
             modify_replacement_policy(policy, config_file, champ_sim_path, 
                                                                         threads)
             for trace_file in os.listdir(trace_dir):
-                if trace_file.endswith('.champsimtrace.xz'):
-                    executor.submit(exec_single_trace_with_policy, 
-                                    trace_file, policy, trace_dir, output_dir, 
-                                    champ_sim_path, warmup_instructions, 
-                                    simulation_instructions)
-                    time.sleep(0.5)
+                executor.submit(exec_single_trace_with_policy, 
+                                trace_file, policy, trace_dir, output_dir, 
+                                champ_sim_path, warmup_instructions, 
+                                simulation_instructions)
+                time.sleep(0.5)
 
 def is_number(value):
     try:
@@ -142,7 +141,7 @@ def main():
 
     # Define the list of trace URLs to download
     trace_urls = [
-        "https://dpc3.compas.cs.stonybrook.edu/champsim-traces/speccpu/400.perlbench-41B.champsimtrace.xz"
+        #"https://dpc3.compas.cs.stonybrook.edu/champsim-traces/speccpu/400.perlbench-41B.champsimtrace.xz"
         #"https://dpc3.compas.cs.stonybrook.edu/champsim-traces/speccpu/400.perlbench-50B.champsimtrace.xz"
     ]
 

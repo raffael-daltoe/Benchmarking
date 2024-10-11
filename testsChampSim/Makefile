@@ -24,7 +24,7 @@ BIN_CHAMPSIM = $(CHAMPSIM_DIR)/bin/champsim
 #####################################################
 
 WARMUP_INSTRUCTIONS = none							
-SIMULATION_INSTRUCTIONS = 4000000000
+SIMULATION_INSTRUCTIONS = 500000
 
 #####################################################
 

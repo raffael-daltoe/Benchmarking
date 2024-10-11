@@ -8,12 +8,14 @@ CFLAGS =
 SCARAB_DIR = ../tools/scarab
 DYNAMORIO_DIR = $(SCARAB_DIR)/src/deps/dynamorio
 CODES_DIR = codes
-SIMULATION_OUTPUTS = sim_outputs
+SIM_OUT = simulations
 PARAM_DIR = param
 TRACE_DIR = traces
 
 PARAM ?=
 PROGRAM ?=
+#make launch-traces PROGRAM=macc_matrixrandomaccess SIM_OUT=macc_matrixrandomaccess ; make launch-traces PROGRAM=randmemaccess SIM_OUT=randmemaccess ; make launch-traces PROGRAM=seqmemaccess SIM_OUT=seqmemaccess ; make launch-traces PROGRAM=transposematrix SIM_OUT=transposematrix ; make launch-traces PROGRAM=worstcase SIM_OUT=worstcase 
+#make trace-program PROGRAM=macc_matrixrandomaccess ; make trace-program PROGRAM=randmemaccess ; make trace-program PROGRAM=seqmemaccess ; make trace-program PROGRAM=transposematrix ; make trace-program PROGRAM=worstcase 
 
 # PARAMETERS TO CHANGE FOR PYTHON SCRIPT
 #####################################################
@@ -21,12 +23,14 @@ PROGRAM ?=
 ENABLE_ASLR  ?=
 SCARAB_ARGS  ?=
 PINTOOL_ARGS ?=
-SIMULATION_INSTRUCTIONS = 396990
+SIMULATION_INSTRUCTIONS = 425349
 
 #####################################################
 
+.PHONY: trace-program launch launch-trace launch-all
+
 # Default target
-all: compile check-param check-program launch-traces
+all: compile check-param check-program launch-trace
 
 check-param:
 ifeq ($(strip $(PARAM)),)
@@ -57,37 +61,42 @@ trace-program: compile
 	bash ../convert-trace/run_portabilize_trace.sh && \
 	bash ../convert-trace/run_update_trace.sh
 
-
 # Launch a complete program
-launch: 
-	mkdir -p $(SIMULATION_OUTPUTS)
+launch: compile
+	mkdir -p $(SIM_OUT)
 	python3 $(SCARAB_DIR)/bin/scarab_launch.py --program $(PROGRAM) \
-	--params $(PARAM) --simdir $(SIMULATION_OUTPUTS) \
+	--params $(PARAM) --simdir $(SIM_OUT) \
 	--scarab_args='--$(SCARAB_ARGS) --pintool_args'--$(PINTOOL_ARGS)
 
-launch-traces: check-param
-	@mkdir -p $(SIMULATION_OUTPUTS)
+launch-trace: check-param
+	@mkdir -p simulations/$(SIM_OUT)
 	@cp $(PARAM) PARAMS.in 
-	# Find the correct trace directory for the program inside traces/
 	@TRACE_DIR_PATH=$(shell cd $(TRACE_DIR) && find . -maxdepth 1 -type d -name "drmemtrace.$(PROGRAM).*" | head -n 1) && \
 	if [ -z "$$TRACE_DIR_PATH" ]; then \
 		echo "Error: Trace directory not found for program $(PROGRAM)"; \
 		rm PARAMS.in; \
 		exit 1; \
 	fi && \
-	./$(SCARAB_DIR)/src/scarab --frontend memtrace --fetch_off_path_ops 0 \
+	./$(SCARAB_DIR)/src/scarab --frontend memtrace  \
 	--cbp_trace_r0=$(TRACE_DIR)/$$TRACE_DIR_PATH/trace \
 	--inst_limit=$(SIMULATION_INSTRUCTIONS) \
-	--memtrace_modules_log=$(TRACE_DIR)/$$TRACE_DIR_PATH/bin
+	--memtrace_modules_log=$(TRACE_DIR)/$$TRACE_DIR_PATH/bin \
+	--output_dir=simulations/$(SIM_OUT)
+	@rm PARAMS.in
+
+launch-all: check-param
+	@mkdir -p simulations/$(SIM_OUT)
+	@cp $(PARAM) PARAMS.in 
+	python3 scarab.py $(nproc) $(SCARAB_DIR) $(TRACE_DIR) $(SIM_OUT) \
+	$(SIMULATION_INSTRUCTIONS)
 	@rm PARAMS.in
 
 
+clean_outputs:
+	rm -rf simulations/*
 
-
-
-clean:
+clean: clean_outputs
 	find . -type f ! -name '*.cpp' ! -name 'Makefile' ! -name '*.py' \
 	! -name '*.in' ! -name '*.c' ! -name '*.sh' ! -name '*.bash' \
 	-exec rm -f {} +
 	rm -rf $(TRACE_DIR)/*.dir
-	rm -rf $(SIMULATION_OUTPUTS)

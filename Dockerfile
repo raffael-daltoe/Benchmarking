@@ -30,6 +30,9 @@ RUN apt-get update && apt-get install -y \
     python3-venv \
     black \
     git \
+    x11-apps \
+    libgl1-mesa-glx \
+    libx11-dev \
     curl \
     zip \
     unzip \
@@ -119,7 +122,7 @@ RUN pip install -r scripts/requirements.txt
 # Allow PFE to run without restrictions within the container
 RUN git config --global --add safe.directory '*'
 
-RUN sudo ln -s /usr/bin/python3 /usr/local/bin/python2
+RUN ln -s /usr/bin/python3 /usr/local/bin/python2
 
 # Define the number of cores
 ENV nproc=32

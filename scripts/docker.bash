@@ -20,6 +20,12 @@ fi
 
 RUN_CMD=(docker run -it --rm --network host --privileged)
 
+# Enable X11 forwarding
+RUN_CMD+=(
+    --env="DISPLAY"
+    --volume="/tmp/.X11-unix:/tmp/.X11-unix:rw"
+)
+
 if [ $ROOT -eq 0 ]; then
     RUN_CMD+=(-u $(id -u):$(id -g))
 fi
