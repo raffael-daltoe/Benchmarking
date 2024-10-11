@@ -85,7 +85,7 @@ launch-trace: check-param
 	@rm PARAMS.in
 
 launch-all: check-param
-	@mkdir -p simulations/$(SIM_OUT)
+	@mkdir -p simulations/
 	@cp $(PARAM) PARAMS.in 
 	python3 scarab.py $(nproc) $(SCARAB_DIR) $(TRACE_DIR) $(SIM_OUT) \
 	$(SIMULATION_INSTRUCTIONS)
@@ -98,5 +98,5 @@ clean_outputs:
 clean: clean_outputs
 	find . -type f ! -name '*.cpp' ! -name 'Makefile' ! -name '*.py' \
 	! -name '*.in' ! -name '*.c' ! -name '*.sh' ! -name '*.bash' \
-	-exec rm -f {} +
+	! -name '*.md' -exec rm -f {} +
 	rm -rf $(TRACE_DIR)/*.dir

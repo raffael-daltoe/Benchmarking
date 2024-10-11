@@ -12,6 +12,7 @@ CVP_CONVERTER_DIR = $(TRACER_DIR)/cvp_converter
 CODES_DIR = codes
 TRACES_DIR = traces
 SIMULATION_OUTPUTS = sim_outputs
+PARAM = param
 
 SRC ?=
 
@@ -62,13 +63,14 @@ trace: check-src
 
 trace-all:
 	python3 champsim.py $(nproc) $(CHAMPSIM_DIR) $(TRACES_DIR) \
-	$(CHAMPSIM_DIR)/champsim_config.json $(SIMULATION_OUTPUTS) \
+	$(PARAM)/champsim_config.json $(SIMULATION_OUTPUTS) \
 	$(WARMUP_INSTRUCTIONS) $(SIMULATION_INSTRUCTIONS)
 
 clean_outputs:
 	rm -rf $(SIMULATION_OUTPUTS)
 
 clean: clean_outputs
-	find . -type f ! -name '*.cpp' ! -name '*.c' ! -name 'Makefile' ! -name '*.py' -exec rm -f {} +
+	find . -type f ! -name '*.cpp' ! -name '*.c' ! -name 'Makefile' \
+	! -name '*.py' ! -name '*.md' -exec rm -f {} +
 
 #python3 champsim.py 32 ../tools/ChampSim traces ../tools/ChampSim/champsim_config.json sim_outputs 10000 5000000000 ; make SRC=cache ; python3 champsim.py 32 ../tools/ChampSim traces ../tools/ChampSim/champsim_config.json sim_outputs 10000 5000000000
