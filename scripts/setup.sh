@@ -27,6 +27,7 @@ done
 echo "###############    Starting ChampSim Configuration    ###############"
 update-alternatives --set gcc /usr/bin/gcc-11 
 update-alternatives --set g++ /usr/bin/g++-11
+cp -r Polices/hawkeye tools/ChampSim/replacement/
 cd tools/ChampSim 
 ./vcpkg/bootstrap-vcpkg.sh 
 ./vcpkg/vcpkg install 
