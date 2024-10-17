@@ -52,19 +52,19 @@ compile: check-program
 	fi
 
 trace-program: compile
-	mkdir -p $(TRACE_DIR)
-	./$(DYNAMORIO_DIR)/bin64/drrun -root $(DYNAMORIO_DIR) \
+	@mkdir -p $(TRACE_DIR)
+	@./$(DYNAMORIO_DIR)/bin64/drrun -root $(DYNAMORIO_DIR) \
 		-t drcachesim -offline \
 		-outdir $(TRACE_DIR)/ \
 		-- $(PROGRAM)
-	cd $(TRACE_DIR) && \
-	bash ../convert-trace/run_portabilize_trace.sh && \
-	bash ../convert-trace/run_update_trace.sh
+	@cd $(TRACE_DIR) && \
+	bash ../convert-trace/run_portabilize_trace.sh > /dev/null 2>&1 && \
+	bash ../convert-trace/run_update_trace.sh > /dev/null 2>&1
 
 # Launch a complete program
 launch: compile
-	mkdir -p $(SIM_OUT)
-	python3 $(SCARAB_DIR)/bin/scarab_launch.py --program $(PROGRAM) \
+	@mkdir -p $(SIM_OUT)
+	@python3 $(SCARAB_DIR)/bin/scarab_launch.py --program $(PROGRAM) \
 	--params $(PARAM) --simdir $(SIM_OUT) \
 	--scarab_args='--$(SCARAB_ARGS) --pintool_args'--$(PINTOOL_ARGS)
 

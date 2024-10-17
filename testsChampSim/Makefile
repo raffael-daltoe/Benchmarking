@@ -24,8 +24,8 @@ BIN_CHAMPSIM = $(CHAMPSIM_DIR)/bin/champsim
 # PARAMETERS TO CHANGE FOR PYTHON SCRIPT
 #####################################################
 
-WARMUP_INSTRUCTIONS = none							
-SIMULATION_INSTRUCTIONS = 500000
+WARMUP_INSTRUCTIONS     = 20000					
+SIMULATION_INSTRUCTIONS = 50000000
 
 #####################################################
 
@@ -46,7 +46,7 @@ compile: check-src
 	fi
 
 convert-pin: check-src
-	mkdir -p $(TRACES_DIR)
+	@mkdir -p $(TRACES_DIR)
 	@if [ -x $(SRC) ]; then \
 		$(PIN) -t $(OBJ-INTEL64) -o $(TRACES_DIR)/$(SRC).champsimtrace  \
 		-t $(SIMULATION_INSTRUCTIONS) -- ./$(SRC); \
@@ -57,9 +57,12 @@ convert-pin: check-src
 	xz -zf $(TRACES_DIR)/$(SRC).champsimtrace
 
 trace: check-src
-	mkdir -p $(SIMULATION_OUTPUTS)
-	$(BIN_CHAMPSIM) $(TRACES_DIR)/$(SRC).champsimtrace.xz > \
-	$(SIMULATION_OUTPUTS)/$(SRC).txt
+	@mkdir -p $(SIMULATION_OUTPUTS)
+	@$(BIN_CHAMPSIM) $(TRACES_DIR)/$(SRC).champsimtrace.xz > \
+	$(SIMULATION_OUTPUTS)/$(SRC).txt \
+	$(if $(SIMULATION_INSTRUCTIONS),--simulation_instructions $(SIMULATION_INSTRUCTIONS)) \
+	$(if $(WARMUP_INSTRUCTIONS),--warmup_instructions $(WARMUP_INSTRUCTIONS))
+	@echo "Simulation Finished"
 
 trace-all:
 	python3 champsim.py $(nproc) $(CHAMPSIM_DIR) $(TRACES_DIR) \

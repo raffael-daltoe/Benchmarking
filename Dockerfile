@@ -122,8 +122,6 @@ RUN pip install -r scripts/requirements.txt
 # Allow PFE to run without restrictions within the container
 RUN git config --global --add safe.directory '*'
 
-RUN ln -s /usr/bin/python3 /usr/local/bin/python2
-
 # Define the number of cores
 ENV nproc=32
 ENV SCARAB_ENABLE_MEMTRACE=1
