@@ -1,7 +1,5 @@
 {
     "executable_name": "champsim",
-    "block_size": 64,
-    "page_size": 4096,
     "heartbeat_frequency": 10000000,
     "num_cores": 1,
     "ooo_cpu": [
@@ -30,14 +28,9 @@
             "btb": "basic_btb"
         }
     ],
-    "DIB": {
-        "window_size": 16,
-        "sets": 32,
-        "ways": 8
-    },
     "L1I": {
-        "sets": 64,
-        "ways": 8,
+        "sets": 4,
+        "ways": 2,
         "rq_size": 64,
         "wq_size": 64,
         "pq_size": 32,
@@ -51,8 +44,8 @@
         "prefetcher": "no_instr"
     },
     "L1D": {
-        "sets": 64,
-        "ways": 12,
+        "sets": 4,
+        "ways": 2,
         "rq_size": 64,
         "wq_size": 64,
         "pq_size": 8,
@@ -66,8 +59,8 @@
         "prefetcher": "no"
     },
     "L2C": {
-        "sets": 1024,
-        "ways": 8,
+        "sets": 8,
+        "ways": 4,
         "rq_size": 32,
         "wq_size": 32,
         "pq_size": 16,
@@ -80,60 +73,10 @@
         "prefetch_activate": "LOAD,PREFETCH",
         "prefetcher": "no"
     },
-    "ITLB": {
-        "sets": 16,
-        "ways": 4,
-        "rq_size": 16,
-        "wq_size": 16,
-        "pq_size": 0,
-        "mshr_size": 8,
-        "latency": 1,
-        "max_tag_check": 2,
-        "max_fill": 2,
-        "prefetch_as_load": false
-    },
-    "DTLB": {
-        "sets": 16,
-        "ways": 4,
-        "rq_size": 16,
-        "wq_size": 16,
-        "pq_size": 0,
-        "mshr_size": 8,
-        "latency": 1,
-        "max_tag_check": 2,
-        "max_fill": 2,
-        "prefetch_as_load": false
-    },
-    "STLB": {
-        "sets": 128,
-        "ways": 12,
-        "rq_size": 32,
-        "wq_size": 32,
-        "pq_size": 0,
-        "mshr_size": 16,
-        "latency": 8,
-        "max_tag_check": 1,
-        "max_fill": 1,
-        "prefetch_as_load": false
-    },
-    "PTW": {
-        "pscl5_set": 1,
-        "pscl5_way": 2,
-        "pscl4_set": 1,
-        "pscl4_way": 4,
-        "pscl3_set": 2,
-        "pscl3_way": 4,
-        "pscl2_set": 4,
-        "pscl2_way": 8,
-        "rq_size": 16,
-        "mshr_size": 5,
-        "max_read": 2,
-        "max_write": 2
-    },
     "LLC": {
         "frequency": 4000,
-        "sets": 2048,
-        "ways": 16,
+        "sets": 12,
+        "ways": 4,
         "rq_size": 32,
         "wq_size": 32,
         "pq_size": 32,
@@ -161,10 +104,5 @@
         "tRCD": 12.5,
         "tCAS": 12.5,
         "turn_around_time": 7.5
-    },
-    "virtual_memory": {
-        "pte_page_size": 4096,
-        "num_levels": 5,
-        "minor_fault_penalty": 200
     }
 }

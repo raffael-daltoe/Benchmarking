@@ -8,7 +8,7 @@ import time
 import sys
 
 # List of policies allowed in ChampSim
-policies = ["lru", "drrip", "ship", "srrip"]
+policies = ["lru", "drrip", "ship", "srrip","hawkeye"]
 
 S1_replacement = threading.Semaphore(1)
 
@@ -47,6 +47,8 @@ def modify_replacement_policy(policy, config_file, champ_sim_path, threads):
     with open(config_file, 'w') as file:
         json.dump(config, file, indent=4)
 
+    subprocess.run(['cp', '-r', config_file, champ_sim_path])
+
     subprocess.run(["./config.sh", "champsim_config.json"], cwd=champ_sim_path)
 
     subprocess.run(["make", f"-j{threads}"], cwd=champ_sim_path, 
@@ -66,11 +68,11 @@ def exec_single_trace_with_policy(trace_file, policy, trace_dir, output_dir,
 
     # Add warmup_instructions if provided
     if warmup_instructions:
-        command.extend(["--warmup_instructions", str(warmup_instructions)])
+        command.extend(["--warmup-instructions", str(warmup_instructions)])
     
     # Add simulation_instructions if provided
     if simulation_instructions:
-        command.extend(["--simulation_instructions", 
+        command.extend(["--simulation-instructions", 
                                                 str(simulation_instructions)])
     
     # Always add the trace path at the end

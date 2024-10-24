@@ -24,7 +24,7 @@ BIN_CHAMPSIM = $(CHAMPSIM_DIR)/bin/champsim
 # PARAMETERS TO CHANGE FOR PYTHON SCRIPT
 #####################################################
 
-WARMUP_INSTRUCTIONS     = 20000					
+WARMUP_INSTRUCTIONS     = 20000000		
 SIMULATION_INSTRUCTIONS = 50000000
 
 #####################################################
@@ -45,7 +45,7 @@ compile: check-src
 		$(CPP) $(CFLAGS) -o $(SRC) $(CODES_DIR)/$(SRC).c; \
 	fi
 
-convert-pin: check-src
+convert-pin: check-src compile
 	@mkdir -p $(TRACES_DIR)
 	@if [ -x $(SRC) ]; then \
 		$(PIN) -t $(OBJ-INTEL64) -o $(TRACES_DIR)/$(SRC).champsimtrace  \
@@ -60,20 +60,21 @@ trace: check-src
 	@mkdir -p $(SIMULATION_OUTPUTS)
 	@$(BIN_CHAMPSIM) $(TRACES_DIR)/$(SRC).champsimtrace.xz > \
 	$(SIMULATION_OUTPUTS)/$(SRC).txt \
-	$(if $(SIMULATION_INSTRUCTIONS),--simulation_instructions $(SIMULATION_INSTRUCTIONS)) \
-	$(if $(WARMUP_INSTRUCTIONS),--warmup_instructions $(WARMUP_INSTRUCTIONS))
+	$(SIMULATION_INSTRUCTIONS) \
+	$(WARMUP_INSTRUCTIONS)
 	@echo "Simulation Finished"
 
 trace-all:
-	python3 champsim.py $(nproc) $(CHAMPSIM_DIR) $(TRACES_DIR) \
+	@python3 champsim.py $(nproc) $(CHAMPSIM_DIR) $(TRACES_DIR) \
 	$(PARAM)/champsim_config.json $(SIMULATION_OUTPUTS) \
-	$(WARMUP_INSTRUCTIONS) $(SIMULATION_INSTRUCTIONS)
+	$(if $(filter-out 0,$(WARMUP_INSTRUCTIONS)),$(WARMUP_INSTRUCTIONS),none) \
+	$(if $(filter-out 0,$(SIMULATION_INSTRUCTIONS)),$(SIMULATION_INSTRUCTIONS),none)
 
 clean_outputs:
 	rm -rf $(SIMULATION_OUTPUTS)
 
 clean: clean_outputs
 	find . -type f ! -name '*.cpp' ! -name '*.c' ! -name 'Makefile' \
-	! -name '*.py' ! -name '*.md' -exec rm -f {} +
+	! -name '*.py' ! -name '*.md' ! -name '*.json' -exec rm -f {} +
 
 #python3 champsim.py 32 ../tools/ChampSim traces ../tools/ChampSim/champsim_config.json sim_outputs 10000 5000000000 ; make SRC=cache ; python3 champsim.py 32 ../tools/ChampSim traces ../tools/ChampSim/champsim_config.json sim_outputs 10000 5000000000

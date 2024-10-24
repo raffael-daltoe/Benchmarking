@@ -89,6 +89,14 @@ RUN apt-get update && \
 
 COPY . /PFE
 
+# Setup Intel Pin
+RUN wget -P /opt http://software.intel.com/sites/landingpage/pintool/downloads/pin-3.15-98253-gb56e429b1-gcc-linux.tar.gz --no-check-certificate && \
+    tar -xf /opt/pin-3.15-98253-gb56e429b1-gcc-linux.tar.gz -C /opt && \
+    rm /opt/pin-3.15-98253-gb56e429b1-gcc-linux.tar.gz && \
+    chown -R PFE:PFE /opt/pin-3.15-98253-gb56e429b1-gcc-linux
+
+RUN bash scripts/setup.sh
+
 WORKDIR /PFE/
 
 # Create a user and group with the same UID and GID as the host user
@@ -101,12 +109,6 @@ RUN echo "PFE ALL=(ALL) NOPASSWD: ALL" >> /etc/sudoers.d/pfe && \
 
 # Change ownership of the alternatives directories to allow the user to switch GCC versions
 RUN chown -R PFE:PFE /var/lib/dpkg /var/lib/apt /var/cache/apt /var/log/apt /var/cache/debconf /etc/apt /etc/alternatives
-
-# Setup Intel Pin
-RUN wget -P /opt http://software.intel.com/sites/landingpage/pintool/downloads/pin-3.15-98253-gb56e429b1-gcc-linux.tar.gz --no-check-certificate && \
-    tar -xf /opt/pin-3.15-98253-gb56e429b1-gcc-linux.tar.gz -C /opt && \
-    rm /opt/pin-3.15-98253-gb56e429b1-gcc-linux.tar.gz && \
-    chown -R PFE:PFE /opt/pin-3.15-98253-gb56e429b1-gcc-linux
 
 # Switch to PFE user as the final step
 USER PFE

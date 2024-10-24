@@ -23,7 +23,7 @@ PROGRAM ?=
 ENABLE_ASLR  ?=
 SCARAB_ARGS  ?=
 PINTOOL_ARGS ?=
-SIMULATION_INSTRUCTIONS = 425349
+SIMULATION_INSTRUCTIONS = 500000000
 
 #####################################################
 
@@ -35,7 +35,7 @@ all: compile check-param check-program launch-trace
 check-param:
 ifeq ($(strip $(PARAM)),)
 	@echo "Param config not defined, using the standard in $(PARAM_DIR)/"
-	$(eval PARAM := $(PARAM_DIR)/param.in)
+	$(eval PARAM := $(PARAM_DIR)/PARAMS.in)
 #	$(error "PARAM config is not defined. Please provide a file for PARAM.")
 endif
 
@@ -87,9 +87,9 @@ launch-trace: check-param
 launch-all: check-param
 	@mkdir -p simulations/
 	@cp $(PARAM) PARAMS.in 
-	python3 scarab.py $(nproc) $(SCARAB_DIR) $(TRACE_DIR) $(SIM_OUT) \
-	$(SIMULATION_INSTRUCTIONS)
-	@rm PARAMS.in
+	@python3 scarab.py $(nproc) $(SCARAB_DIR) $(TRACE_DIR) $(SIM_OUT) \
+	$(SIMULATION_INSTRUCTIONS) $(PARAM)
+#	@rm PARAMS.in
 
 
 clean_outputs:

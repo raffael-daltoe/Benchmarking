@@ -178,7 +178,7 @@
 --ramulator_chip_width		8
 --ramulator_rows		65536
 --ramulator_cols		1024
---ramulator_scheduling_policy	FRFCFS_Cap		
+--ramulator_scheduling_policy	FRFCFS_PriorHit		
 --ramulator_readq_entries	32		
 --ramulator_writeq_entries	32		
 --ramulator_record_cmd_trace	FALSE		

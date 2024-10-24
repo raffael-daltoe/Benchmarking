@@ -1,14 +1,14 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#define SIZE 50
+#define SIZE 500
 
 void matrix_multiplication(int **mat1, int **mat2, int **result) {
     for (int i = 0; i < SIZE; i++) {
         for (int j = 0; j < SIZE; j++) {
             result[i][j] = 0;
             for (int k = 0; k < SIZE; k++) {
-                result[i][j] += mat1[i][k] * mat2[k][j];
+                result[rand() % SIZE][rand() % SIZE] += mat1[i][k] * mat2[k][j];
             }
         }
     }
@@ -29,8 +29,8 @@ int main() {
     // Initialize mat1 and mat2 with random values
     for (int i = 0; i < SIZE; i++) {
         for (int j = 0; j < SIZE; j++) {
-            mat1[i][j] = rand() % 100;
-            mat2[i][j] = rand() % 100;
+            mat1[i][j] = rand() % SIZE;
+            mat2[i][j] = rand() % SIZE;
         }
     }
 
