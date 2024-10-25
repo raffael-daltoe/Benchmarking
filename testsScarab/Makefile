@@ -86,7 +86,7 @@ launch-trace: check-param
 
 launch-all: check-param
 	@mkdir -p simulations/
-	@cp $(PARAM) PARAMS.in 
+#	@cp $(PARAM) PARAMS.in 
 	@python3 scarab.py $(nproc) $(SCARAB_DIR) $(TRACE_DIR) $(SIM_OUT) \
 	$(SIMULATION_INSTRUCTIONS) $(PARAM)
 #	@rm PARAMS.in

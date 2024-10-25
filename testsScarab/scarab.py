@@ -5,111 +5,100 @@ import threading
 import time
 import sys
 
-# You may not need the semaphore unless necessary for resource locking
-S1_replacement = threading.Semaphore(1)
+class ScarabExecutor:
+    def __init__(self, scarab_path, policies):
+        self.scarab_path = scarab_path
+        self.policies = policies
+        self.semaphore = threading.Semaphore(1)
+        self.modified_content = []
 
-policies = ["FCFS", "FRFCFS", "FRFCFS_Cap", "FRFCFS_PriorHit"]
+    def exec_single_trace(self, trace_file, trace_path, output_dir, simulation_instructions, policy):
+        trace_name = os.path.splitext(trace_file)[0]
 
-# Function to execute a single trace
-def exec_single_trace(trace_file, trace_path, output_dir, 
-                      scarab_path, simulation_instructions,policy):
-    trace_name = os.path.splitext(trace_file)[0]
+        # Compute the path to the 'bin' folder, which is two levels up from trace_path
+        bin_dir = os.path.abspath(os.path.join(trace_path, "../../bin"))
 
-    # Compute the path to the 'bin' folder, which is two levels up from trace_path
-    bin_dir = os.path.abspath(os.path.join(trace_path, "../../bin"))
+        # Create the output directory for this trace_name and policy
+        trace_output_dir = os.path.join(output_dir, trace_name, policy)
+        os.makedirs(trace_output_dir, exist_ok=True)
 
-    # Create the output directory for this trace_name
-    trace_output_dir = os.path.join(output_dir, trace_name)
-    trace_output_dir = os.path.join(trace_output_dir, policy)
-    if not os.path.exists(trace_output_dir):
-        os.makedirs(trace_output_dir)
+        # Scarab command to execute
+        command = [
+            os.path.join(self.scarab_path, "src/scarab"),
+            "--frontend", "memtrace",
+            "--fetch_off_path_ops", "0",
+            f"--cbp_trace_r0={trace_path}",
+            f"--inst_limit={simulation_instructions}",
+            f"--memtrace_modules_log={bin_dir}",
+            f"--output_dir={trace_output_dir}"  # Ensure this directory is used
+        ]
 
-    # Scarab command to execute
-    command = [
-        os.path.join(scarab_path, "src/scarab"),
-        "--frontend", "memtrace",
-        "--fetch_off_path_ops", "0",
-        f"--cbp_trace_r0={trace_path}",
-        f"--inst_limit={simulation_instructions}",
-        f"--memtrace_modules_log={bin_dir}",
-        f"--output_dir={trace_output_dir}"  # Ensure this directory is used
-    ]
+        print(f"Executing Scarab for {trace_file} with command: {' '.join(command)}")
 
-    print(f"Executing Scarab for {trace_file} with command: {' '.join(command)}")
+        # Release the semaphore before starting the subprocess
+        self.semaphore.release()
+        subprocess.run(command)
 
-    # If semaphore is used, it should be released after subprocess starts
-    # S1_replacement.release()
-    S1_replacement.release()
-    subprocess.run(command)
-    
-def modify_replacement_police(config_file,policy,scarab_path):
-    time.sleep(0.5)
-    S1_replacement.acquire()
+    def modify_replacement_policy(self, config_file, policy):
+        time.sleep(0.5)
+        self.semaphore.acquire()
 
-    with open(config_file, 'r') as file:
-        new_policy = file.readlines()
-    
+        with open(config_file, 'r') as file:
+            lines = file.readlines()
 
-    new_content = []
-    for line in new_policy:
-        if line.startswith("--ramulator_scheduling_policy"):
-            # Replace the line with the new policy
-            new_content.append(f"--ramulator_scheduling_policy\t{policy}\n")
-        else:
-            new_content.append(line)
+        self.modified_content = [
+            f"--ramulator_scheduling_policy\t{policy}\n" if line.startswith("--ramulator_scheduling_policy") else line
+            for line in lines
+        ]
 
-        new_directory = os.path.join(scarab_path, 'src')
+        # Return the path where the new file will be saved
+        #return os.path.join(self.scarab_path, 'src', os.path.basename(config_file))
+        return config_file
 
-        new_file_path = os.path.join(new_directory, 
-                                                os.path.basename(config_file))
+    def write_file(self, file_path):
+        param_scarab = os.path.join(self.scarab_path, 'src', os.path.basename(file_path))
 
-        with open(new_file_path, 'w') as new_file:
-            new_file.writelines(new_content)
-        
-        with open(os.path.basename(config_file), 'w') as current_file:
-            current_file.writelines(new_content)
+        with open(param_scarab, 'w') as new_file:
+            new_file.writelines(self.modified_content)
+        print(f"File written to: {param_scarab}")
 
-def modify_params(param,executor,output_dir, 
-                            scarab_path, simulation_instructions,trace_folder):
-    for policy in policies:
-        modify_replacement_police(param,policy,scarab_path)
-        prepare_execution(executor,output_dir, scarab_path,
-                          simulation_instructions, trace_folder, policy)
-        
+        parent_dir_path = os.path.join(os.path.dirname(file_path), "..", os.path.basename(file_path))
+        parent_dir_path = os.path.abspath(parent_dir_path)
 
-def prepare_execution(executor,output_dir, scarab_path,simulation_instructions,
-                            trace_folder, policy):
-    for trace_file in os.listdir(trace_folder):
-        if trace_file.endswith('.trace.gz') or trace_file.endswith('.champsimtrace.xz'):
-            trace_path = os.path.join(trace_folder, trace_file)
-            print(f"Submitting trace for processing: {trace_path} with {policy}")
-            # Submit the task to the thread pool for parallel execution
-            executor.submit(exec_single_trace, 
-                            trace_file, trace_path, output_dir, 
-                            scarab_path, simulation_instructions,policy)
-            # You can adjust or remove this sleep if necessary
+        with open(parent_dir_path, 'w') as parent_file:
+            parent_file.writelines(self.modified_content)
 
-# Function to execute traces for all directories in the trace folder
-def exec_all_traces(trace_dir, output_dir, scarab_path, 
-                    simulation_instructions, threads,param):
+    def prepare_execution(self, executor, output_dir, simulation_instructions, trace_folder, policy):
+        for trace_file in os.listdir(trace_folder):
+            if trace_file.endswith('.trace.gz') or trace_file.endswith('.champsimtrace.xz'):
+                trace_path = os.path.join(trace_folder, trace_file)
+                print(f"Submitting trace for processing: {trace_path} with {policy}")
+                executor.submit(
+                    self.exec_single_trace, trace_file, trace_path, output_dir,
+                    simulation_instructions, policy
+                )
+
+    def modify_params(self, param, executor, output_dir, simulation_instructions, trace_folder):
+        for policy in self.policies:
+            file_to_be_written = self.modify_replacement_policy(param, policy)
+            self.write_file(file_to_be_written)
+            self.prepare_execution(executor, output_dir, simulation_instructions, trace_folder, policy)
+
+
+def execute_all_traces(scarab_executor, trace_dir, output_dir, simulation_instructions, threads, param):
     # Create output directory if not exists
-    if not os.path.exists(output_dir):
-        os.makedirs(output_dir)
+    os.makedirs(output_dir, exist_ok=True)
 
-    # Create the ThreadPoolExecutor ONCE, outside the loop
     with ThreadPoolExecutor(max_workers=threads) as executor:
-        # Iterate through each subdirectory in the trace directory
         for trace_subdir in os.listdir(trace_dir):
             full_subdir_path = os.path.join(trace_dir, trace_subdir)
             
-            # Check if it's a directory and contains a 'trace' folder
             if os.path.isdir(full_subdir_path):
                 trace_folder = os.path.join(full_subdir_path, 'trace')
                 
-                # Ensure 'trace' folder exists inside the subdirectory
                 if os.path.exists(trace_folder):
-                    modify_params(param,executor,output_dir, 
-                            scarab_path, simulation_instructions,trace_folder)
+                    scarab_executor.modify_params(param, executor, output_dir, simulation_instructions, trace_folder)
+
 
 def is_number(value):
     try:
@@ -118,11 +107,10 @@ def is_number(value):
     except ValueError:
         return False
 
-# Main function to execute all steps
+
 def main():
     if len(sys.argv) < 7:
-        print("Usage: python3 script.py <number_of_threads> <scarab_path> \
-              <trace_dir> <output_dir> <simulation_instructions> <param>")
+        print("Usage: python3 script.py <number_of_threads> <scarab_path> <trace_dir> <output_dir> <simulation_instructions> <param>")
         sys.exit(1)
 
     try:
@@ -137,14 +125,16 @@ def main():
     scarab_path = sys.argv[2]
     trace_dir = sys.argv[3]
     output_dir = sys.argv[4]
-
-    simulation_instructions = int(sys.argv[5]) if len(sys.argv) > 5 \
-        and is_number(sys.argv[5]) else None
-    
+    simulation_instructions = int(sys.argv[5]) if len(sys.argv) > 5 and is_number(sys.argv[5]) else None
     param = sys.argv[6]
 
-    exec_all_traces(trace_dir, output_dir, scarab_path, 
-                    simulation_instructions, threads,param)
+    policies = ["FCFS", "FRFCFS", "FRFCFS_Cap", "FRFCFS_PriorHit"]
+
+    # Create an instance of the ScarabExecutor
+    scarab_executor = ScarabExecutor(scarab_path, policies)
+
+    execute_all_traces(scarab_executor, trace_dir, output_dir, simulation_instructions, threads, param)
+
 
 if __name__ == "__main__":
     main()
