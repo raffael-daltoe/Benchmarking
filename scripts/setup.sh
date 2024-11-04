@@ -64,7 +64,7 @@ configure_champsim() {
 
 # Function to configure and build Intel PIN
 configure_intel_pin() {
-    echo "###############    Starting Intel PIN Configuration    ###############"
+    echo "###############    Starting Intel PIN Configuration   ###############"
     cd ChampSim/tracer/pin
     make -j"${NPROC}" -s
     cd ../../../
@@ -87,7 +87,6 @@ configure_gem5() {
     switch_gcc_version "$GCC_VERSION_11" "$GPP_VERSION_11"
     cd gem5
     echo | scons build/X86/gem5.opt -j"${NPROC}"  # Skip the prompt
-    # Optionally, you can run a specific configuration by uncommenting the line below:
     # build/X86/gem5.opt configs/learning_gem5/part1/simple.py
     cd ..
 }

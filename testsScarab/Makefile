@@ -23,7 +23,7 @@ PROGRAM ?=
 ENABLE_ASLR  ?=
 SCARAB_ARGS  ?=
 PINTOOL_ARGS ?=
-SIMULATION_INSTRUCTIONS = 500000000
+SIMULATION_INSTRUCTIONS = 450000000
 
 #####################################################
 

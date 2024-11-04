@@ -78,7 +78,7 @@ class ChampSimRunner:
 
     def prepare_execution(self, executor, policy):
         for trace_file in os.listdir(self.trace_dir):
-            if trace_file.endswith('.trace.gz') or trace_file.endswith('.champsimtrace.xz'):
+            if trace_file.endswith('.champsimtrace') or trace_file.endswith('.xz'):
                 trace_path = os.path.join(self.trace_dir, trace_file)
                 executor.submit(self.exec_single_trace, trace_file, trace_path, policy)
 

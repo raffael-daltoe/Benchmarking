@@ -1,62 +1,96 @@
+import os
 import re
 import matplotlib.pyplot as plt
+import numpy as np
 
-# Define the file path
-file_path = '../sim_outputs/drmemtrace.macc_matrixrandomaccess.00262.9664.trace_lru_output.txt'  # Replace this with your file path
+# Define paths, algorithms, and metrics
+output_dir = '../sim_outputs/'
+algorithms = ['drrip', 'hawkeye', 'lru', 'ship', 'srrip']
+metrics_to_collect = ['CPU 0 cumulative IPC', 'Branch Prediction Accuracy', 'MPKI']
 
-# Initialize a dictionary to store the extracted metrics
-metrics = {
-    'Warmup IPC': 0,
-    'Simulation IPC': 0,
-    'LLC Misses': 0,
-    'DTLB Misses': 0,
-    'ITLB Misses': 0,
-    'L1D Misses': 0,
-    'L2 Misses': 0,
-    'LLC Average Miss Latency (cycles)': 0,
-    'DTLB Average Miss Latency (cycles)': 0,
-    'L1I Average Miss Latency (cycles)': 0,
-    'DRAM Row Buffer Hits': 0,
-    'DRAM Row Buffer Misses': 0,
-}
+# List of metric prefixes with ACCESS, HIT, and MISS patterns
+access_hit_miss_metrics = ['cpu0_L1D TOTAL']  # You can add more prefixes here as needed
 
-# Read the file and extract values using regex
-with open(file_path, 'r') as file:
-    data = file.read()
+# Function to extract ACCESS, HIT, MISS metrics based on the prefixes list
+def extract_access_hit_miss_metrics(file_content):
+    metrics = {}
+    for metric_prefix in access_hit_miss_metrics:
+        # Use regex to match ACCESS, HIT, MISS values for each metric prefix
+        match = re.search(rf'{re.escape(metric_prefix)}\s+ACCESS:\s+(\d+)\s+HIT:\s+(\d+)\s+MISS:\s+(\d+)', file_content)
+        if match:
+            metrics[f'{metric_prefix} ACCESS'] = int(match.group(1))
+            metrics[f'{metric_prefix} HIT'] = int(match.group(2))
+            metrics[f'{metric_prefix} MISS'] = int(match.group(3))
+    return metrics
 
-    # Extract metrics using regex
-    metrics['Warmup IPC'] = float(re.search(r'Warmup finished.*IPC:\s+([\d.]+)', data).group(1))
-    metrics['Simulation IPC'] = float(re.search(r'Simulation finished.*IPC:\s+([\d.]+)', data).group(1))
+# Function to extract general metrics from file content
+def extract_metrics(file_content):
+    # Start with ACCESS, HIT, MISS metrics
+    metrics = extract_access_hit_miss_metrics(file_content)
+    # Add other general metrics
+    for metric in metrics_to_collect:
+        match = re.search(rf'{metric}:?\s*([\d.]+)', file_content)
+        if match:
+            metrics[metric] = float(match.group(1))
+    return metrics
+
+# Collect metrics for each trace and algorithm
+trace_metrics = {}
+for trace_file in os.listdir(output_dir):
+    # Check if the file corresponds to a known trace and algorithm
+    for algo in algorithms:
+        if trace_file.endswith(f'_{algo}_output.txt'):
+            trace_name = trace_file.split('_')[0]
+            if trace_name not in trace_metrics:
+                trace_metrics[trace_name] = {}
+            
+            # Read the file and extract metrics
+            with open(os.path.join(output_dir, trace_file), 'r') as f:
+                file_content = f.read()
+                trace_metrics[trace_name][algo] = extract_metrics(file_content)
+
+# Prepare data for a grouped bar plot
+all_metrics = metrics_to_collect + [f'{prefix} {suffix}' for prefix in access_hit_miss_metrics for suffix in ['ACCESS', 'HIT', 'MISS']]
+
+for metric in all_metrics:
+    plt.figure(figsize=(12, 8))
+    trace_names = list(trace_metrics.keys())
+    x = np.arange(len(trace_names))  # Position of each trace group
+    bar_width = 0.15  # Width of each bar within a group
     
-    metrics['LLC Misses'] = int(re.search(r'LLC TOTAL\s+ACCESS:.*MISS:\s+(\d+)', data).group(1))
-    metrics['DTLB Misses'] = int(re.search(r'cpu0_DTLB TOTAL\s+ACCESS:.*MISS:\s+(\d+)', data).group(1))
-    metrics['ITLB Misses'] = int(re.search(r'cpu0_ITLB TOTAL\s+ACCESS:.*MISS:\s+(\d+)', data).group(1))
-    metrics['L1D Misses'] = int(re.search(r'cpu0_L1D TOTAL\s+ACCESS:.*MISS:\s+(\d+)', data).group(1))
-    metrics['L2 Misses'] = int(re.search(r'cpu0_L2C TOTAL\s+ACCESS:.*MISS:\s+(\d+)', data).group(1))
+    # Calculate max and min values to set y-axis limits
+    all_values = [trace_metrics[trace][algo].get(metric, 0) for trace in trace_metrics for algo in algorithms]
+    y_min, y_max = min(all_values) * 0.95, max(all_values) * 1.05  # Add some padding
+    
+    # Plot bars for each algorithm
+    for i, algo in enumerate(algorithms):
+        y = [trace_metrics[trace][algo].get(metric, 0) for trace in trace_names]
+        plt.bar(x + i * bar_width, y, width=bar_width, label=algo)
+        
+        # Annotate each bar with its value
+        for j, val in enumerate(y):
+            # Default annotation color and style for non-best IPC
+            annotation_color = 'black'
+            font_weight = 'normal'
+            font_size = 8
 
-    metrics['LLC Average Miss Latency (cycles)'] = float(re.search(r'LLC AVERAGE MISS LATENCY:\s+([\d.]+)', data).group(1))
-    metrics['DTLB Average Miss Latency (cycles)'] = float(re.search(r'cpu0_DTLB AVERAGE MISS LATENCY:\s+([\d.]+)', data).group(1))
-    metrics['L1I Average Miss Latency (cycles)'] = float(re.search(r'cpu0_L1I AVERAGE MISS LATENCY:\s+([\d.]+)', data).group(1))
+            # Highlight the best IPC in red with bold font
+            if metric == 'CPU 0 cumulative IPC':
+                max_algo = max(trace_metrics[trace_names[j]], key=lambda algo: trace_metrics[trace_names[j]][algo].get(metric, 0))
+                if algo == max_algo:
+                    annotation_color = 'red'
+                    font_weight = 'bold'
+                    font_size = 12
 
-    metrics['DRAM Row Buffer Hits'] = int(re.search(r'ROW_BUFFER_HIT:\s+(\d+)', data).group(1))
-    metrics['DRAM Row Buffer Misses'] = int(re.search(r'ROW_BUFFER_MISS:\s+(\d+)', data).group(1))
+            plt.text(x[j] + i * bar_width, val + 0.005 * y_max, f'{val:.2f}', 
+                     ha='center', fontsize=font_size, color=annotation_color, fontweight=font_weight)
 
-# Plot the metrics using matplotlib
-labels = list(metrics.keys())
-values = list(metrics.values())
-
-plt.figure(figsize=(12, 8))
-bars = plt.bar(labels, values, color='lightgreen')
-
-# Add labels above the bars with the metric values
-for bar in bars:
-    yval = bar.get_height()
-    plt.text(bar.get_x() + bar.get_width()/2, yval, f'{yval}', ha='center', va='bottom')
-
-plt.ylabel('Metric Values')
-plt.xticks(rotation=45, ha="right")  # Rotate the labels to avoid overlap
-plt.title('ChampSim Benchmarking Metrics')
-plt.tight_layout()
-
-# Show the plot
-plt.show()
+    # Set labels, title, and limits
+    plt.xticks(x + bar_width * (len(algorithms) - 1) / 2, trace_names, rotation=45, fontsize=14)
+    plt.ylim(y_min, y_max)
+    plt.xlabel('Traces', fontsize=16)
+    plt.ylabel(metric, fontsize=16)
+    plt.title(f'{metric} Comparison Across Traces for Each Algorithm', fontsize=18)
+    plt.legend(title='Cache Algorithms', fontsize=12)
+    plt.tight_layout()
+    plt.show()

@@ -36,6 +36,7 @@ RUN apt-get update && apt-get install -y \
     curl \
     zip \
     unzip \
+    lz4 \
     tar \
     pkg-config \
     scons \
