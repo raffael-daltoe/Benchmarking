@@ -14,8 +14,6 @@ TRACE_DIR = traces
 
 PARAM ?=
 PROGRAM ?=
-#make launch-traces PROGRAM=macc_matrixrandomaccess SIM_OUT=macc_matrixrandomaccess ; make launch-traces PROGRAM=randmemaccess SIM_OUT=randmemaccess ; make launch-traces PROGRAM=seqmemaccess SIM_OUT=seqmemaccess ; make launch-traces PROGRAM=transposematrix SIM_OUT=transposematrix ; make launch-traces PROGRAM=worstcase SIM_OUT=worstcase 
-#make trace-program PROGRAM=macc_matrixrandomaccess ; make trace-program PROGRAM=randmemaccess ; make trace-program PROGRAM=seqmemaccess ; make trace-program PROGRAM=transposematrix ; make trace-program PROGRAM=worstcase 
 
 # PARAMETERS TO CHANGE FOR PYTHON SCRIPT
 #####################################################
