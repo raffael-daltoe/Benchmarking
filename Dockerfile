@@ -26,6 +26,9 @@ RUN apt-get update && apt-get install -y \
     python3-dev \
     python-is-python3 \
     python3-pydot \
+    python3-tk \
+    python3-pil \
+    python3-pil.imagetk \
     pip \
     python3-venv \
     black \
@@ -70,7 +73,9 @@ RUN apt-get update && apt-get install -y \
     libelf-dev \
     sudo \
     && update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-11 70 \
-    && update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-11 70
+    && update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-11 70 \
+    && rm -rf /var/lib/apt/lists/*
+
 
 # Add Kitware APT repository for the latest CMake
 RUN apt-get update && \
@@ -128,3 +133,4 @@ RUN git config --global --add safe.directory '*'
 # Define the number of cores
 ENV nproc=32
 ENV SCARAB_ENABLE_MEMTRACE=1
+ENV MPLBACKEND=TkAgg
