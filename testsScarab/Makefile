@@ -8,6 +8,7 @@ CFLAGS =
 SCARAB_DIR = ../tools/scarab
 DYNAMORIO_DIR = $(SCARAB_DIR)/src/deps/dynamorio
 CODES_DIR = codes
+BINARY_DIR = $(CODES_DIR)/binaries
 SIM_OUT = simulations
 PARAM_DIR = param
 TRACE_DIR = traces
@@ -28,7 +29,7 @@ SIMULATION_INSTRUCTIONS = 450000000
 .PHONY: trace-program launch launch-trace launch-all
 
 # Default target
-all: compile check-param check-program launch-trace
+all: compile check-param launch-trace
 
 check-param:
 ifeq ($(strip $(PARAM)),)
@@ -37,27 +38,56 @@ ifeq ($(strip $(PARAM)),)
 #	$(error "PARAM config is not defined. Please provide a file for PARAM.")
 endif
 
-check-program:
-ifeq ($(strip $(PROGRAM)),)
-	$(error "PROGRAM is not defined. Please provide a file for PROGRAM.")
-endif
-
-compile: check-program
-	@if [ -f $(CODES_DIR)/$(PROGRAM).cpp ]; then \
-		$(CC) $(CFLAGS) -o $(PROGRAM) $(CODES_DIR)/$(PROGRAM).cpp; \
-	elif [ -f $(CODES_DIR)/$(PROGRAM).c ]; then \
-		$(CPP) $(CFLAGS) -o $(PROGRAM) $(CODES_DIR)/$(PROGRAM).c; \
+compile: 
+	@mkdir -p $(BINARY_DIR)
+	@if [ -z "$(strip $(PROGRAM))" ]; then \
+		echo "No PROGRAM specified, compiling all source files in $(CODES_DIR)"; \
+		for file in $(CODES_DIR)/*.cpp $(CODES_DIR)/*.c; do \
+			[ -e "$$file" ] || continue; \
+			base_file=$$(basename $$file .cpp); \
+			base_file=$$(basename $$base_file .c); \
+			echo "Compiling $$base_file..."; \
+			$(CC) $(CFLAGS) -o $(BINARY_DIR)/$$base_file $$file || $(CPP) $(CFLAGS) -o $(BINARY_DIR)/$$base_file $$file; \
+		done; \
+	else \
+		if [ -f $(CODES_DIR)/$(PROGRAM).cpp ]; then \
+			$(CC) $(CFLAGS) -o $(BINARY_DIR)/$(PROGRAM) $(CODES_DIR)/$(PROGRAM).cpp; \
+		elif [ -f $(CODES_DIR)/$(PROGRAM).c ]; then \
+			$(CPP) $(CFLAGS) -o $(BINARY_DIR)/$(PROGRAM) $(CODES_DIR)/$(PROGRAM).c; \
+		else \
+			echo "Source file for $(PROGRAM) not found in $(CODES_DIR)"; \
+			exit 1; \
+		fi; \
 	fi
 
 trace-program: compile
 	@mkdir -p $(TRACE_DIR)
-	@./$(DYNAMORIO_DIR)/bin64/drrun -root $(DYNAMORIO_DIR) \
-		-t drcachesim -offline \
-		-outdir $(TRACE_DIR)/ \
-		-- $(PROGRAM)
-	@cd $(TRACE_DIR) && \
-	bash ../convert-trace/run_portabilize_trace.sh > /dev/null 2>&1 && \
-	bash ../convert-trace/run_update_trace.sh > /dev/null 2>&1
+	@if [ -z "$(strip $(PROGRAM))" ]; then \
+		for bin in $(BINARY_DIR)/*; do \
+			[ -e "$$bin" ] || continue; \
+			base_file=$$(basename $$bin); \
+			echo "Generating trace for $$base_file program"; \
+			./$(DYNAMORIO_DIR)/bin64/drrun -root $(DYNAMORIO_DIR) \
+				-t drcachesim -offline \
+				-outdir $(TRACE_DIR) \
+				-- $$bin; \
+			( cd $(TRACE_DIR) && \
+			  bash ../convert-trace/run_portabilize_trace.sh > /dev/null 2>&1 && \
+			  bash ../convert-trace/run_update_trace.sh > /dev/null 2>&1 ); \
+			echo "Finished the trace for $$base_file"; \
+		done; \
+	else \
+		echo "Generating trace for $(PROGRAM)..."; \
+		./$(DYNAMORIO_DIR)/bin64/drrun -root $(DYNAMORIO_DIR) \
+			-t drcachesim -offline \
+			-outdir $(TRACE_DIR)/$(PROGRAM) \
+			-- $(BINARY_DIR)/$(PROGRAM); \
+		( cd $(TRACE_DIR)/$(PROGRAM) && \
+		  bash ../convert-trace/run_portabilize_trace.sh > /dev/null 2>&1 && \
+		  bash ../convert-trace/run_update_trace.sh > /dev/null 2>&1 ); \
+		echo "Finished the trace for $(PROGRAM)"; \
+	fi
+
 
 # Launch a complete program
 launch: compile
@@ -97,4 +127,4 @@ clean: clean_outputs
 	find . -type f ! -name '*.cpp' ! -name 'Makefile' ! -name '*.py' \
 	! -name '*.in' ! -name '*.c' ! -name '*.sh' ! -name '*.bash' \
 	! -name '*.md' -exec rm -f {} +
-	rm -rf $(TRACE_DIR)/*.dir
+	rm -rf $(TRACE_DIR)

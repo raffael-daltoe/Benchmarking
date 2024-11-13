@@ -40,6 +40,7 @@ class ChampSimRunner:
                 print(f"Downloaded {file_name}.")
 
     def modify_replacement_policy(self, policy):
+        time.sleep(0.5)
         self.S1_replacement.acquire()
         with open(self.config_file, 'r') as file:
             config = json.load(file)
