@@ -9,9 +9,6 @@ GCC_VERSION_7="/usr/bin/gcc-7"
 GPP_VERSION_11="/usr/bin/g++-11"
 GPP_VERSION_7="/usr/bin/g++-7"
 
-# Number of processors (default to all if not defined)
-NPROC="${NPROC:-$(nproc)}"
-
 # Function to switch GCC versions
 switch_gcc_version() {
     local gcc_version="$1"
@@ -51,12 +48,13 @@ init_submodules() {
 configure_champsim() {
     echo "###############    Starting ChampSim Configuration    ###############"
     switch_gcc_version "$GCC_VERSION_11" "$GPP_VERSION_11"
-    cp -r Polices/hawkeye tools/ChampSim/replacement/
+    cp -r Polices/hawkeye/lib_hawkeye tools/ChampSim
+    cp -r Polices/hawkeye/hawkeye tools/ChampSim/replacement
     cd tools/ChampSim
     ./vcpkg/bootstrap-vcpkg.sh
     ./vcpkg/vcpkg install
     ./config.sh champsim_config.json
-    make -j"${NPROC}" -s
+    make -j"${nproc}" -s
     cd tracer/cvp_converter
     g++ cvp2champsim.cc -o cvp_tracer
     cd ../../..
@@ -66,7 +64,7 @@ configure_champsim() {
 configure_intel_pin() {
     echo "###############    Starting Intel PIN Configuration   ###############"
     cd ChampSim/tracer/pin
-    make -j"${NPROC}" -s
+    make -j"${nproc}" -s
     cd ../../../
 }
 
@@ -75,9 +73,9 @@ configure_scarab() {
     echo "###############    Starting Scarab Configuration    ###############"
     switch_gcc_version "$GCC_VERSION_7" "$GPP_VERSION_7"
     cd scarab/src
-    make -j"${NPROC}" -s
+    make -j"${nproc}" -s
     cd deps/dynamorio/
-    cmake . && make -j"${NPROC}"
+    cmake . && make -j"${nproc}"
     cd ../../../../
 }
 
@@ -86,7 +84,7 @@ configure_gem5() {
     echo "###############    Starting GEM5 Configuration    ###############"
     switch_gcc_version "$GCC_VERSION_11" "$GPP_VERSION_11"
     cd gem5
-    echo | scons build/X86/gem5.opt -j"${NPROC}"  # Skip the prompt
+    echo | scons build/X86/gem5.opt -j"${nproc}"  # Skip the prompt
     # build/X86/gem5.opt configs/learning_gem5/part1/simple.py
     cd ..
 }
@@ -103,9 +101,9 @@ main() {
 
     # Execute configurations
     configure_champsim
-    configure_intel_pin
-    configure_scarab
-    configure_gem5
+    #configure_intel_pin
+    #configure_scarab
+    #configure_gem5
 }
 
 # Run the main function

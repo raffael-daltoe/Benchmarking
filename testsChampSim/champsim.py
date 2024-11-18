@@ -12,6 +12,7 @@ class ChampSimRunner:
         self.champ_sim_path = champ_sim_path
         self.trace_dir = trace_dir
         self.config_file = config_file
+        self.config_bin_name = 'champsim'
         self.output_dir = output_dir
         self.policies = policies
         self.threads = threads
@@ -19,6 +20,8 @@ class ChampSimRunner:
         self.simulation_instructions = simulation_instructions
         self.S1_replacement = threading.Semaphore(1)
         self.modified_config = None  # Holds the updated configuration parameters
+        self.json_config_name = None
+        self.json_directory = 'json_files/'
 
     def download_traces(self, trace_urls):
         if not os.path.exists(self.trace_dir):
@@ -46,16 +49,28 @@ class ChampSimRunner:
             config = json.load(file)
         config['LLC']['replacement'] = policy
 
-        self.modified_config = config  # Save the updated configuration in the class
+        self.modified_config = config  
+
+    def modify_name_file(self,policy):
+        updated_config = self.modified_config.copy()
+        updated_config['executable_name'] = f'champsim_{policy}'
+        self.config_bin_name = f'champsim_{policy}'
+        self.modified_config = updated_config
+        
 
     def write_file(self, file_path):
         if self.modified_config:
             with open(file_path, 'w') as file:
                 json.dump(self.modified_config, file, indent=4)
 
+            subprocess.run(['mkdir', '-p', f"{self.json_directory}"], cwd=self.champ_sim_path)
+
+            self.json_name_file = self.champ_sim_path + '/' + self.json_directory + self.config_bin_name + '.json'
+            json_to_config = self.json_directory + self.config_bin_name + '.json'
+
             # Copy the configuration file to the ChampSim path and prepare for compilation
-            subprocess.run(['cp', '-r', file_path, self.champ_sim_path])
-            subprocess.run(["./config.sh", "champsim_config.json"], cwd=self.champ_sim_path)
+            subprocess.run(['cp', '-r', file_path, self.json_name_file])
+            subprocess.run(["./config.sh", json_to_config], cwd=self.champ_sim_path)
             subprocess.run(["make", f"-j{self.threads}"], cwd=self.champ_sim_path, stdout=subprocess.DEVNULL, stderr=subprocess.STDOUT)
         else:
             print("No configuration changes to write.")
@@ -63,7 +78,10 @@ class ChampSimRunner:
     def exec_single_trace(self, trace_file, trace_path, policy):
         trace_name = os.path.splitext(trace_file)[0]
         output_file = os.path.join(self.output_dir, f"{trace_name}_{policy}_output.txt")
-        command = [os.path.join(self.champ_sim_path, "bin/champsim")]
+
+        bin = 'bin/' + self.config_bin_name
+
+        command = [os.path.join(self.champ_sim_path, bin)]
 
         if self.warmup_instructions:
             command.extend(["--warmup-instructions", str(self.warmup_instructions)])
@@ -73,6 +91,7 @@ class ChampSimRunner:
 
         print(f"Executing ChampSim for {trace_file} with policy {policy}...")
         with open(output_file, 'w') as outfile:
+            #print(f"executing : {command}")
             self.S1_replacement.release()
             subprocess.run(command, stdout=outfile, stderr=outfile)
         print(f"Output for {trace_file} with policy {policy} stored in {output_file}")
@@ -90,10 +109,15 @@ class ChampSimRunner:
         self.download_traces(trace_urls)
 
         with ThreadPoolExecutor(max_workers=self.threads) as executor:
-            for policy in self.policies:
-                self.modify_replacement_policy(policy)
-                self.write_file(self.config_file)
-                self.prepare_execution(executor, policy)
+            if len(self.policies) != 0:
+                for policy in self.policies:
+                    
+                    self.modify_replacement_policy(policy)
+                    self.modify_name_file(policy)
+                    self.write_file(self.config_file)
+                    self.prepare_execution(executor, policy)
+            else:
+                self.prepare_execution(executor, None)
 
 
 def main():
@@ -122,7 +146,7 @@ def main():
         #"https://dpc3.compas.cs.stonybrook.edu/champsim-traces/speccpu/400.perlbench-50B.champsimtrace.xz"
     ]
 
-    policies = ["lru", "drrip", "ship", "srrip", "hawkeye"]
+    policies = ["hawkeye", "ship" ,"lru", "drrip", "srrip"]
 
     champ_sim_runner = ChampSimRunner(champ_sim_path, trace_dir, config_file, output_dir, policies, threads, warmup_instructions, simulation_instructions)
     champ_sim_runner.execute_all_policies(trace_urls)

@@ -49,7 +49,6 @@ for trace_file in os.listdir(output_dir):
     else:
         # If there's only one part, use it as-is
         trace_name = parts[0]
-    print(f"{trace_name}")
 
     if trace_name not in trace_metrics:
         trace_metrics[trace_name] = {}
@@ -71,9 +70,19 @@ for metric in all_metrics:
     # Use logarithmic scale if there’s a large range in values
     use_log_scale = metric in ['cpu0_L1D TOTAL MISS', 'cpu0_L1D TOTAL HIT']
 
+    if metric == 'cpu0_L1D TOTAL MISS':
+        total_hit_scale = 5
+        position_legend = "upper right"
+    elif metric == 'cpu0_L1D TOTAL HIT':
+        total_hit_scale = 1.5
+        position_legend = "upper left"
+    else:
+        total_hit_scale = 1.1
+        position_legend = "upper right"
+
     # Calculate max and min values to set y-axis limits
     all_values = [trace_metrics[trace][algo].get(metric, 0) for trace in trace_metrics for algo in algorithms]
-    y_min, y_max = min(all_values) * 0.95, max(all_values) * (1.9 if use_log_scale else 1.05)
+    y_min,x_min = min(all_values) * 0.95, max(all_values) * total_hit_scale
 
     
     if use_log_scale:
@@ -89,7 +98,7 @@ for metric in all_metrics:
             # Default annotation color and style for non-best IPC
             annotation_color = 'black'
             font_weight = 'normal'
-            font_size = 11
+            font_size = 16
 
             # Highlight the best IPC in red with bold font
             if metric == 'CPU 0 cumulative IPC':
@@ -97,44 +106,56 @@ for metric in all_metrics:
                 if algo == max_algo:
                     annotation_color = 'limegreen'
                     font_weight = 'bold'
-                    font_size = 14
+                    font_size = 17
             # Highlight the best values in red for HIT and MISS metrics
             elif metric == 'cpu0_L1D TOTAL HIT':
                 max_hit_algo = max(trace_metrics[trace_names[j]], key=lambda algo: trace_metrics[trace_names[j]][algo].get(metric, 0))
                 if algo == max_hit_algo:
                     annotation_color = 'limegreen'
                     font_weight = 'bold'
-                    font_size = 12
+                    font_size = 17
             elif metric == 'cpu0_L1D TOTAL MISS':
                 min_miss_algo = min(trace_metrics[trace_names[j]], key=lambda algo: trace_metrics[trace_names[j]][algo].get(metric, float('inf')))
                 if algo == min_miss_algo:
                     annotation_color = 'red'
                     font_weight = 'bold'
-                    font_size = 12
+                    font_size = 17
             
             
             # Format large numbers with 'K' or 'M' notation for readability
             if val >= 1e9:
-                display_val = f'{val/1e9:.2f}'  # Convert to millions
+                display_val = f'{val/1e9:.2f}B'  # Convert to millions
             elif val >= 1e6:
-                display_val = f'{val/1e6:.2f}'  # Convert to thousands
+                display_val = f'{val/1e6:.2f}M'  # Convert to thousands
             elif val >= 1e3:
-                display_val = f'{val/1e3:.2f}'  # Convert to thousands
+                display_val = f'{val/1e3:.2f}K'  # Convert to thousands
             else:
                 display_val = f'{val:.2f}'  # Use regular two-decimal format
 
-            plt.text(
-                x[j] + i * bar_width, val * 1.05 if use_log_scale else val + 0.0005 * y_max,
-                display_val, ha='center', fontsize=font_size, color=annotation_color, fontweight=font_weight, rotation=45
-            )
+
+            # Adjust the text position slightly above each bar's top and shift it to the right
+            current_scale = plt.gca().get_yscale()  # Get the current y-axis scale
+            offset_y = val * 0.01 if current_scale == 'log' else 0.005 * max(y)  # Dynamically set y offset based on scale
+            offset_x = 0.05  # Shift text slightly to the right
+
+            plt.text(x[j] + i * bar_width + offset_x, val + offset_y, display_val, 
+                    ha='center', fontsize=font_size, color=annotation_color, fontweight=font_weight, rotation=55)
 
     # Set labels, title, and limits
     plt.xticks(x + bar_width * (len(algorithms) - 1) / 2, trace_names, rotation=25, fontsize=14)
-    plt.ylim(y_min, y_max)
-    plt.xlim(-0.09, len(trace_names) - 0.2)
+    plt.ylim(y_min, x_min)
+    plt.xlim(-0.15, len(trace_names) - 0.13)
     plt.xlabel('Traces', fontsize=16)
     plt.ylabel(metric, fontsize=16)
-    plt.title(f'{metric} Comparison Across Traces for Each Algorithm', fontsize=18)
-    plt.legend(title='Cache Algorithms', fontsize=12)
+    plt.title(f'{metric} Comparison Across Traces and Cache Algorithms', fontsize=18)
+    plt.legend(
+        title='Cache Algorithms',
+        fontsize=20,           # Increase the font size of legend text
+        title_fontsize=22,      # Increase the font size of the legend title
+        borderpad=0.5,          # Increase padding inside the legend box
+        labelspacing=0.5,       # Increase the spacing between entries
+        handletextpad=0.5,      # Increase space between marker and text
+        loc=position_legend,       # Adjust location if needed
+    )
     plt.tight_layout()
     plt.show()

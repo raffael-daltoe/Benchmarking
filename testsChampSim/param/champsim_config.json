@@ -1,5 +1,5 @@
 {
-    "executable_name": "champsim",
+    "executable_name": "champsim_srrip",
     "block_size": 64,
     "page_size": 4096,
     "heartbeat_frequency": 10000000,
@@ -145,7 +145,7 @@
         "virtual_prefetch": false,
         "prefetch_activate": "LOAD,PREFETCH",
         "prefetcher": "no",
-        "replacement": "hawkeye"
+        "replacement": "srrip"
     },
     "physical_memory": {
         "frequency": 3200,

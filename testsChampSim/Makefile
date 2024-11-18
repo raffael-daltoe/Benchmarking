@@ -24,8 +24,8 @@ BIN_CHAMPSIM = $(CHAMPSIM_DIR)/bin/champsim
 # PARAMETERS TO CHANGE FOR PYTHON SCRIPT
 #####################################################
 
-WARMUP_INSTRUCTIONS     = 100000000
-SIMULATION_INSTRUCTIONS = 450000000
+WARMUP_INSTRUCTIONS     = 1000000
+SIMULATION_INSTRUCTIONS = 20000000
 
 #####################################################
 
@@ -75,7 +75,7 @@ convert-pin: compile
 		done; \
 	else \
 		for src in $(SRC); do \
-			echo "Converting $$src to Pin trace..."; \
+			echo "Converting $$src to Pin trace.."; \
 			$(PIN) -t $(OBJ-INTEL64) -o $(TRACES_DIR)/$$src.champsimtrace \
 			-t $(SIMULATION_INSTRUCTIONS) -- ./$$src; \
 		done; \

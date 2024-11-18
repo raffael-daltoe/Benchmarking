@@ -1,7 +1,8 @@
 /*  Hawkeye with Belady's Algorithm Replacement Policy
     Code for Hawkeye configurations of 1 and 2 in Champsim */
 
-#include "../inc/champsim.h"
+#include "cache.h"
+#include "../../lib_hawkeye/champsim_crc2.h"
 #include <map>
 #include <math.h>
 
@@ -13,9 +14,9 @@
 #define MAXRRIP 7
 uint32_t rrip[LLC_SETS][LLC_WAYS];
 
-#include "hawkeye_predictor.h"
-#include "optgen.h"
-#include "helper_function.h"
+#include "../../lib_hawkeye/hawkeye_predictor.h"
+#include "../../lib_hawkeye/optgen.h"
+#include "../../lib_hawkeye/helper_function.h"
 
 //Hawkeye predictors for demand and prefetch requests
 Hawkeye_Predictor* predictor_demand;    //2K entries, 5-bit counter per each entry
@@ -44,7 +45,7 @@ uint64_t set_timer[LLC_SETS];   //64 sets, where 1 timer is used for every set
 
 
 // Initialize replacement state
-void InitReplacementState()
+void CACHE::initialize_replacement()
 {
     cout << "Initialize Hawkeye replacement policy state" << endl;
 
@@ -71,7 +72,7 @@ void InitReplacementState()
 
 // Find replacement victim
 // Return value should be 0 ~ 15 or 16 (bypass)
-uint32_t GetVictimInSet (uint32_t cpu, uint32_t set, const BLOCK *current_set, uint64_t PC, uint64_t paddr, uint32_t type)
+uint32_t CACHE::find_victim(uint32_t triggering_cpu, uint64_t instr_id, uint32_t set, const BLOCK* current_set, uint64_t ip, uint64_t full_addr, uint32_t type)
 {
     //Find the line with RRPV of 7 in that set
     for(uint32_t i = 0; i < LLC_WAYS; i++){
@@ -115,7 +116,7 @@ void update_cache_history(unsigned int sample_set, unsigned int currentVal){
 }
 
 // Called on every cache hit and cache fill
-void UpdateReplacementState (uint32_t cpu, uint32_t set, uint32_t way, uint64_t paddr, uint64_t PC, uint64_t victim_addr, uint32_t type, uint8_t hit)
+void CACHE::update_replacement_state (uint32_t cpu, uint32_t set, uint32_t way, uint64_t paddr, uint64_t PC, uint64_t victim_addr, uint32_t type, uint8_t hit)
 {
     paddr = (paddr >> 6) << 6;
 
@@ -278,7 +279,7 @@ void PrintStats_Heartbeat()
 }
 
 // Use this function to print out your own stats at the end of simulation
-void PrintStats()
+void CACHE::replacement_final_stats()
 {
     int hits = 0;
     int access = 0;
