@@ -45,4 +45,13 @@ This command will execute all the traces located in the `traces` folder.
 
 ## Results
 
-Results incoming...
+The `graphic.py` script in the `results` folder allows you to easily visualize 
+metrics. To customize the metrics:
+
+1. Add any desired metric to the `metrics_to_collect` list in the script.
+
+2. Run the following command to generate all the graphics inside results folder:
+
+    ```bash
+    python3 graphic.py
+    ```

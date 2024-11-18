@@ -55,4 +55,28 @@ instructions (to pre-populate memory).
 
 ## Results
 
-Results incoming...
+The `graphic.py` script in the `results` folder allows you to generate 
+visualizations for various metrics collected during simulations. 
+
+### Adding Metrics
+
+1. **Single-Field Metrics**:  
+   To include a metric with a single field (e.g., `BRANCH_DIRECT_JUMP`, 
+   `BRANCH_INDIRECT`, etc.), simply add it to the `metrics_to_collect` list in 
+   the `graphic.py` script.
+
+2. **Multi-Field Metrics**:  
+   For metrics with multiple fields (e.g., `cpu0_DTLB TRANSLATION`, 
+   `cpu0_L1I TOTAL`, etc.), the Python script requires additional handling to 
+   properly process and visualize the data.
+
+### Running the Script
+
+After adding the desired metrics to `metrics_to_collect`, you can execute the 
+script with the following command:
+
+1. Run the following command to generate all the graphics inside results folder:
+
+    ```bash
+    python3 graphic.py
+    ```
