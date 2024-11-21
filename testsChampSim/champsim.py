@@ -106,7 +106,7 @@ class ChampSimRunner:
         if not os.path.exists(self.output_dir):
             os.makedirs(self.output_dir)
 
-        self.download_traces(trace_urls)
+        #self.download_traces(trace_urls)
 
         with ThreadPoolExecutor(max_workers=self.threads) as executor:
             if len(self.policies) != 0:

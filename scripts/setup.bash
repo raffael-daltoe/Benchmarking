@@ -102,7 +102,7 @@ main() {
     # Execute configurations
     configure_champsim
     configure_intel_pin
-    #configure_scarab
+    configure_scarab
     #configure_gem5
 }
 

@@ -80,9 +80,9 @@ trace-program: compile
 		echo "Generating trace for $(PROGRAM)..."; \
 		./$(DYNAMORIO_DIR)/bin64/drrun -root $(DYNAMORIO_DIR) \
 			-t drcachesim -offline \
-			-outdir $(TRACE_DIR)/$(PROGRAM) \
+			-outdir $(TRACE_DIR) \
 			-- $(BINARY_DIR)/$(PROGRAM); \
-		( cd $(TRACE_DIR)/$(PROGRAM) && \
+		( cd $(TRACE_DIR) && \
 		  bash ../convert-trace/run_portabilize_trace.sh > /dev/null 2>&1 && \
 		  bash ../convert-trace/run_update_trace.sh > /dev/null 2>&1 ); \
 		echo "Finished the trace for $(PROGRAM)"; \
