@@ -142,8 +142,13 @@ def main():
     simulation_instructions = int(sys.argv[7]) if len(sys.argv) > 7 and sys.argv[7].isdigit() else None
 
     trace_urls = [
-        #"https://dpc3.compas.cs.stonybrook.edu/champsim-traces/speccpu/400.perlbench-41B.champsimtrace.xz"
-        #"https://dpc3.compas.cs.stonybrook.edu/champsim-traces/speccpu/400.perlbench-50B.champsimtrace.xz"
+        "https://dpc3.compas.cs.stonybrook.edu/champsim-traces/speccpu/400.perlbench-41B.champsimtrace.xz",
+        "https://dpc3.compas.cs.stonybrook.edu/champsim-traces/speccpu/401.bzip2-226B.champsimtrace.xz",
+        "https://dpc3.compas.cs.stonybrook.edu/champsim-traces/speccpu/401.bzip2-277B.champsimtrace.xz",
+        "https://dpc3.compas.cs.stonybrook.edu/champsim-traces/speccpu/401.bzip2-7B.champsimtrace.xz",
+        "https://dpc3.compas.cs.stonybrook.edu/champsim-traces/speccpu/400.perlbench-50B.champsimtrace.xz",
+        "https://dpc3.compas.cs.stonybrook.edu/champsim-traces/speccpu/403.gcc-16B.champsimtrace.xz",
+        "https://dpc3.compas.cs.stonybrook.edu/champsim-traces/speccpu/401.bzip2-38B.champsimtrace.xz"
     ]
 
     policies = ["hawkeye", "ship" ,"lru", "drrip", "srrip"]

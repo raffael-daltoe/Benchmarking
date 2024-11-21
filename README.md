@@ -23,15 +23,3 @@ running:
     ```
 
 This will prepare the environment for running simulations.
-
-## ChampSim
-
-Results incoming...
-
-## Scarab
-
-Results incoming...
-
-## GEM5
-
-Results incoming...
