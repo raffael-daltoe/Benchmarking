@@ -3,7 +3,7 @@
 
 CC = gcc
 CPP = g++
-CFLAGS =
+CFLAGS = -O0
 
 CHAMPSIM_DIR = ../tools/ChampSim
 TRACER_DIR = $(CHAMPSIM_DIR)/tracer
@@ -25,7 +25,7 @@ BIN_CHAMPSIM = $(CHAMPSIM_DIR)/bin/champsim
 #####################################################
 
 WARMUP_INSTRUCTIONS     = 1000000
-SIMULATION_INSTRUCTIONS = 20000000
+SIMULATION_INSTRUCTIONS = 600000000
 
 #####################################################
 
@@ -42,18 +42,30 @@ compile:
 	@mkdir -p $(TRACES_DIR)
 	@if [ -z "$(strip $(SRC))" ]; then \
 		echo "SRC is not defined, using all files in $(CODES_DIR)"; \
-		for file in $(CODES_DIR)/*.cpp $(CODES_DIR)/*.c; do \
+		for file in $(CODES_DIR)/*; do \
 			[ -e "$$file" ] || continue; \
-			base_file=$$(basename $$file .cpp); \
-			base_file=$$(basename $$base_file .c); \
-			$(CC) $(CFLAGS) -o $$base_file $$file || $(CPP) $(CFLAGS) -o $$base_file $$file; \
+			case "$$file" in \
+				*.cpp) \
+					base_file=$$(basename $$file .cpp); \
+					echo "Compiling $$file as C++ source"; \
+					$(CPP) $(CFLAGS) -o $$base_file $$file; \
+					;; \
+				*.c) \
+					base_file=$$(basename $$file .c); \
+					echo "Compiling $$file as C source"; \
+					$(CC) $(CFLAGS) -o $$base_file $$file; \
+					;; \
+				*) \
+					echo "Skipping unknown file type: $$file"; \
+					;; \
+			esac; \
 		done; \
 	else \
 		for src in $(SRC); do \
 			if [ -f $(CODES_DIR)/$$src.cpp ]; then \
-				$(CC) $(CFLAGS) -o $$src $(CODES_DIR)/$$src.cpp; \
+				$(CPP) $(CFLAGS) -o $$src $(CODES_DIR)/$$src.cpp; \
 			elif [ -f $(CODES_DIR)/$$src.c ]; then \
-				$(CPP) $(CFLAGS) -o $$src $(CODES_DIR)/$$src.c; \
+				$(CC) $(CFLAGS) -o $$src $(CODES_DIR)/$$src.c; \
 			else \
 				echo "Source file for $$src not found in $(CODES_DIR)"; \
 				exit 1; \

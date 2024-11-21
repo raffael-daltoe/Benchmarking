@@ -3,7 +3,7 @@
 
 CC = gcc
 CPP = g++
-CFLAGS =
+CFLAGS = -O0
 
 SCARAB_DIR = ../tools/scarab
 DYNAMORIO_DIR = $(SCARAB_DIR)/src/deps/dynamorio

@@ -47,7 +47,7 @@ uint64_t set_timer[LLC_SETS];   //64 sets, where 1 timer is used for every set
 // Initialize replacement state
 void CACHE::initialize_replacement()
 {
-    cout << "Initialize Hawkeye replacement policy state" << endl;
+    //cout << "Initialize Hawkeye replacement policy state" << endl;
 
     for (int i=0; i<LLC_SETS; i++) {
         for (int j=0; j<LLC_WAYS; j++) {
@@ -67,7 +67,7 @@ void CACHE::initialize_replacement()
     predictor_prefetch = new Hawkeye_Predictor();
     predictor_demand = new Hawkeye_Predictor();
 
-    cout << "Finished initializing Hawkeye replacement policy state" << endl;
+    //cout << "Finished initializing Hawkeye replacement policy state" << endl;
 }
 
 // Find replacement victim
