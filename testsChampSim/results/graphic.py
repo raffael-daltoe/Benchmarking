@@ -78,7 +78,7 @@ for metric in all_metrics:
         position_legend = "upper left"
     else:
         total_hit_scale = 1.1
-        position_legend = "upper right"
+        position_legend = "upper left"
 
     # Calculate max and min values to set y-axis limits
     all_values = [trace_metrics[trace][algo].get(metric, 0) for trace in trace_metrics for algo in algorithms]
