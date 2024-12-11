@@ -63,7 +63,7 @@
         "prefetch_as_load": false,
         "virtual_prefetch": false,
         "prefetch_activate": "LOAD,PREFETCH",
-        "prefetcher": "no"
+        "prefetcher": "no_instr"
     },
     "L2C": {
         "sets": 512,
@@ -78,7 +78,7 @@
         "prefetch_as_load": false,
         "virtual_prefetch": false,
         "prefetch_activate": "LOAD,PREFETCH",
-        "prefetcher": "no"
+        "prefetcher": "no_instr"
     },
     "ITLB": {
         "sets": 16,
@@ -144,7 +144,7 @@
         "prefetch_as_load": false,
         "virtual_prefetch": false,
         "prefetch_activate": "LOAD,PREFETCH",
-        "prefetcher": "no",
+        "prefetcher": "no_instr",
         "replacement": "srrip"
     },
     "physical_memory": {

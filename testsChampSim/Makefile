@@ -109,6 +109,8 @@ trace-all:
 
 clean_outputs:
 	rm -rf $(SIMULATION_OUTPUTS)
+	rm -rf $(CHAMPSIM_DIR)/json_files/
+	rm -rf $(CHAMPSIM_DIR)/bin/
 
 clean: clean_outputs
 	find . -type f ! -name '*.cpp' ! -name '*.c' ! -name 'Makefile' \

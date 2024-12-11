@@ -50,8 +50,8 @@ class ChampSimRunner:
                 print(f"Downloaded {file_name}.")
 
     def modify_replacement_policy(self, policy):
-        #time.sleep(0.5)
-        #self.S1_replacement.acquire()
+        time.sleep(0.5)
+        self.S1_replacement.acquire()
         with open(self.config_file, 'r') as file:
             config = json.load(file)
         config['LLC']['replacement'] = policy
@@ -59,26 +59,23 @@ class ChampSimRunner:
         self.modified_config = config  
         
     def modify_prefetcher(self,prefetch):
-        #time.sleep(0.5)
-        #self.S2_replacement.acquire()
-        with open(self.config_file, 'r') as file:
-            config = json.load(file)
-        config['L1I']['prefetcher'] = prefetch
-        config['L1D']['prefetcher'] = prefetch
-        config['L2C']['prefetcher'] = prefetch
-        config['LLC']['prefetcher'] = prefetch
+        time.sleep(0.5)
+        self.S2_replacement.acquire()
+
+        self.modified_config['L1I']['prefetcher'] = prefetch
+        self.modified_config['L1D']['prefetcher'] = prefetch
+        self.modified_config['L2C']['prefetcher'] = prefetch
+        self.modified_config['LLC']['prefetcher'] = prefetch
         
 
-        self.modified_config = config  
+       # self.modified_config = config  
         
     def modify_branch(self,branch):
-        #time.sleep(0.5)
-        #self.S3_replacement.acquire()
-        with open(self.config_file, 'r') as file:
-            config = json.load(file)
-        config['ooo_cpu'][0]['branch_predictor'] = branch
+        time.sleep(0.5)
+        self.S3_replacement.acquire()
+        self.modified_config['ooo_cpu'][0]['branch_predictor'] = branch
 
-        self.modified_config = config  
+       # self.modified_config = config  
     
     def modify_name_file(self,policy,prefetch,branch):
         updated_config = self.modified_config.copy()
@@ -136,9 +133,9 @@ class ChampSimRunner:
             print(f"Executing ChampSim for {trace_file} with policy {policy}, \
               branch {branch} and prefetch {prefetch}...")
             #print(f"executing : {command}")
-            #self.S1_replacement.release()
-            #self.S2_replacement.release()
-            #self.S3_replacement.release()
+            self.S1_replacement.release()
+            self.S2_replacement.release()
+            self.S3_replacement.release()
             subprocess.run(command, stdout=outfile, stderr=outfile)
         print(f"Output for {trace_file} with policy {policy} \
                 branch {branch} and prefetch {prefetch} \
@@ -217,7 +214,7 @@ def main():
     ]
 
     policies = ["hawkeye", "ship" ,"lru", "drrip", "srrip"]
-    prefetchs = ["next_line_instr", "no","no_instr"]
+    prefetchs = ["next_line_instr", "no","no_instr", "ip_stride", "next_line", "spp_dev", "va_ampm_lite"]
 
     branchs = ["bimodal", "gshare" ,"hashed_perceptron", "perceptron"]
     
