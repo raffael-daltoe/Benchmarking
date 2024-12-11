@@ -9,19 +9,23 @@ import sys
 
 class ChampSimRunner:
     def __init__(self, champ_sim_path, trace_dir, config_file, output_dir, 
-                 policies, threads, warmup_instructions=None, 
-                 simulation_instructions=None):
+                 policies, prefetchs, branchs, threads, 
+                 warmup_instructions=None, simulation_instructions=None):
         self.champ_sim_path = champ_sim_path
         self.trace_dir = trace_dir
         self.config_file = config_file
         self.config_bin_name = 'champsim'
         self.output_dir = output_dir
         self.policies = policies
+        self.prefetchs = prefetchs
+        self.branchs = branchs
         self.threads = threads
         self.warmup_instructions = warmup_instructions
         self.simulation_instructions = simulation_instructions
         self.S1_replacement = threading.Semaphore(1)
         self.S2_replacement = threading.Semaphore(1)
+        self.S3_replacement = threading.Semaphore(1)
+        self.SGlobal        = threading.Semaphore(32)
         self.modified_config = None  # Holds the updated configuration parameter
         self.json_config_name = None
         self.json_directory = 'json_files/'
@@ -46,28 +50,40 @@ class ChampSimRunner:
                 print(f"Downloaded {file_name}.")
 
     def modify_replacement_policy(self, policy):
-        time.sleep(0.5)
-        self.S1_replacement.acquire()
+        #time.sleep(0.5)
+        #self.S1_replacement.acquire()
         with open(self.config_file, 'r') as file:
             config = json.load(file)
         config['LLC']['replacement'] = policy
 
         self.modified_config = config  
         
-    '''def modify_prefetcher(self,prefetch):
-        time.sleep(0.5)
-        self.S2_replacement.acquire()
+    def modify_prefetcher(self,prefetch):
+        #time.sleep(0.5)
+        #self.S2_replacement.acquire()
         with open(self.config_file, 'r') as file:
             config = json.load(file)
         config['L1I']['prefetcher'] = prefetch
+        config['L1D']['prefetcher'] = prefetch
+        config['L2C']['prefetcher'] = prefetch
+        config['LLC']['prefetcher'] = prefetch
+        
 
         self.modified_config = config  
-    '''
+        
+    def modify_branch(self,branch):
+        #time.sleep(0.5)
+        #self.S3_replacement.acquire()
+        with open(self.config_file, 'r') as file:
+            config = json.load(file)
+        config['ooo_cpu'][0]['branch_predictor'] = branch
+
+        self.modified_config = config  
     
-    def modify_name_file(self,policy):
+    def modify_name_file(self,policy,prefetch,branch):
         updated_config = self.modified_config.copy()
-        updated_config['executable_name'] = f'champsim_{policy}'
-        self.config_bin_name = f'champsim_{policy}'
+        updated_config['executable_name'] = f'champsim_{policy}_{prefetch}_{branch}'
+        self.config_bin_name = f'champsim_{policy}_{prefetch}_{branch}'
         self.modified_config = updated_config
         
 
@@ -98,10 +114,11 @@ class ChampSimRunner:
         else:
             print("No configuration changes to write.")
 
-    def exec_single_trace(self, trace_file, trace_path, policy):
+    def exec_single_trace(self, trace_file, trace_path, policy, branch,
+                                                                      prefetch):
         trace_name = os.path.splitext(trace_file)[0]
         output_file = os.path.join(self.output_dir, 
-                                            f"{trace_name}_{policy}_output.txt")
+                        f"{trace_name}_pol:{policy}_bra:{branch}_pre:{prefetch}_output.txt")
 
         bin = 'bin/' + self.config_bin_name
 
@@ -115,22 +132,29 @@ class ChampSimRunner:
                                              str(self.simulation_instructions)])
         command.append(trace_path)
 
-        print(f"Executing ChampSim for {trace_file} with policy {policy}...")
         with open(output_file, 'w') as outfile:
+            print(f"Executing ChampSim for {trace_file} with policy {policy}, \
+              branch {branch} and prefetch {prefetch}...")
             #print(f"executing : {command}")
-            self.S1_replacement.release()
+            #self.S1_replacement.release()
+            #self.S2_replacement.release()
+            #self.S3_replacement.release()
             subprocess.run(command, stdout=outfile, stderr=outfile)
         print(f"Output for {trace_file} with policy {policy} \
+                branch {branch} and prefetch {prefetch} \
                                                        stored in {output_file}")
+        self.SGlobal.release()
 
-    def prepare_execution(self, executor, policy):
+    def prepare_execution(self, executor, policy, branch, prefetch):
         for trace_file in os.listdir(self.trace_dir):
             if (trace_file.endswith('.champsimtrace') or 
-                                                     trace_file.endswith('.xz')):
+                                                    trace_file.endswith('.xz')):
                 
                 trace_path = os.path.join(self.trace_dir, trace_file)
+                self.SGlobal.acquire()
                 executor.submit(self.exec_single_trace, trace_file, trace_path, 
-                                                                policy)
+                                                                policy, branch,
+                                                                prefetch )
 
     def execute_all_policies(self, trace_urls):
         if not os.path.exists(self.output_dir):
@@ -141,11 +165,18 @@ class ChampSimRunner:
         with ThreadPoolExecutor(max_workers=self.threads) as executor:
             if len(self.policies) != 0:
                 for policy in self.policies:
-                        
-                    self.modify_replacement_policy(policy)
-                    self.modify_name_file(policy)
-                    self.write_file(self.config_file)
-                    self.prepare_execution(executor, policy)
+                    if len(self.prefetchs) != 0:
+                        for prefetch in self.prefetchs:
+                            if len(self.branchs) != 0:
+                                for branch in self.branchs:
+                                    self.modify_replacement_policy(policy)
+                                    self.modify_prefetcher(prefetch)
+                                    self.modify_branch(branch)
+                                    self.modify_name_file(policy,prefetch,
+                                                                        branch)
+                                    self.write_file(self.config_file)
+                                    self.prepare_execution(executor, policy,
+                                                           branch, prefetch)
             else:
                 self.prepare_execution(executor, None)
 
@@ -186,10 +217,13 @@ def main():
     ]
 
     policies = ["hawkeye", "ship" ,"lru", "drrip", "srrip"]
+    prefetchs = ["next_line_instr", "no","no_instr"]
+
+    branchs = ["bimodal", "gshare" ,"hashed_perceptron", "perceptron"]
     
     champ_sim_runner = ChampSimRunner(champ_sim_path, trace_dir, config_file, 
-                                      output_dir, policies, threads,
-                                      warmup_instructions, 
+                                      output_dir, policies, prefetchs, branchs,
+                                      threads, warmup_instructions, 
                                       simulation_instructions)
     
     champ_sim_runner.execute_all_policies(trace_urls)
