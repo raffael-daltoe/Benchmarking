@@ -17,11 +17,11 @@
 #include <string>
 
 // CACHE ACCESS TYPE
-#define LOAD      0
-#define RFO       1
-#define PREFETCH  2
-#define WRITEBACK 3
-#define NUM_TYPES 4
+#define CACHE_LOAD      0
+#define CACHE_RFO       1
+#define CACHE_PREFETCH  2
+#define CACHE_WRITEBACK 3
+#define CACHE_NUM_TYPES 4
 
 using namespace std;
 

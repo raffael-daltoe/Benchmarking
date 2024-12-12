@@ -49,7 +49,8 @@ configure_champsim() {
     echo "###############    Starting ChampSim Configuration    ###############"
     switch_gcc_version "$GCC_VERSION_11" "$GPP_VERSION_11"
     cp -r Polices/hawkeye/lib_hawkeye tools/ChampSim
-    cp -r Polices/hawkeye/hawkeye tools/ChampSim/replacement
+    cp -r Polices/hawkeye/Hawkeye_Predictor tools/ChampSim/replacement
+    cp -r Polices/bip tools/ChampSim/replacement
     cd tools/ChampSim
     ./vcpkg/bootstrap-vcpkg.sh
     ./vcpkg/vcpkg install
