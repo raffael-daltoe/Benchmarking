@@ -1,8 +1,3 @@
-#include <algorithm>
-#include <cassert>
-#include <map>
-#include <vector>
-
 #include "fifo.h"
 
 fifo::fifo(CACHE* cache) : fifo(cache, cache->NUM_SET, cache->NUM_WAY) {}

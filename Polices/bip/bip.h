@@ -1,7 +1,12 @@
 #ifndef REPLACEMENT_BIP_H
 #define REPLACEMENT_BIP_H
 
+#include <algorithm>
+#include <cassert>
+#include <map>
 #include <vector>
+#include <utility>
+#include <random>
 
 #include "cache.h"
 #include "modules.h"

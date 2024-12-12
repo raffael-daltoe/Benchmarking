@@ -1,6 +1,9 @@
 #ifndef REPLACEMENT_FIFO_H
 #define REPLACEMENT_FIFO_H
 
+#include <algorithm>
+#include <cassert>
+#include <map>
 #include <vector>
 
 #include "cache.h"

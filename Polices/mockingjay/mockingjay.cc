@@ -182,9 +182,9 @@ long mockingjay::find_victim(uint32_t triggering_cpu, uint64_t instr_id,
         }
     }
     
-    uint64_t pc_signature = get_pc_signature(ip.to<uint64_t>(), false, type ==
-                                        access_type::PREFETCH, triggering_cpu);
-    if (type != access_type::WRITE && rdp.count(pc_signature) &&
+    uint64_t pc_signature = get_pc_signature(ip.to<uint64_t>(), false, 
+    access_type{type} == access_type::PREFETCH, triggering_cpu);
+    if (access_type{type} != access_type::WRITE && rdp.count(pc_signature) &&
             (rdp[pc_signature] > MAX_RD || rdp[pc_signature] / GRANULARITY
                                                                    > max_etr)) {
         return LLC_WAY;
@@ -198,7 +198,7 @@ void mockingjay::update_replacement_state(uint32_t triggering_cpu, long set,
     long way, champsim::address full_addr, champsim::address ip, 
     champsim::address victim_addr, access_type type, uint8_t hit)
 {
-    if (type == access_type::WRITE) {
+    if (access_type{type} == access_type::WRITE) {
         if(!hit) {
             etr[set][way] = -INF_ETR;
         }
@@ -207,7 +207,7 @@ void mockingjay::update_replacement_state(uint32_t triggering_cpu, long set,
         
 
     ip = champsim::address(get_pc_signature(ip.to<uint64_t>(), hit, 
-                                type == access_type::PREFETCH, triggering_cpu));
+                   access_type{type} == access_type::PREFETCH, triggering_cpu));
 
 
 
@@ -227,7 +227,7 @@ void mockingjay::update_replacement_state(uint32_t triggering_cpu, long set,
             int sample = time_elapsed(current_timestamp[set], last_timestamp);
 
             if (sample <= INF_RD) {
-                if (type == access_type::PREFETCH) {
+                if (access_type{type} == access_type::PREFETCH) {
                     sample = sample * FLEXMIN_PENALTY;
                 }
                 if (rdp.count(last_signature)) {
