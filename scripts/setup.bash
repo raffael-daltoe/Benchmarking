@@ -51,6 +51,11 @@ configure_champsim() {
     cp -r Polices/hawkeye/lib_hawkeye tools/ChampSim
     cp -r Polices/hawkeye/Hawkeye_Predictor tools/ChampSim/replacement
     cp -r Polices/bip tools/ChampSim/replacement
+    cp -r Polices/emissary tools/ChampSim/replacement
+    cp -r Polices/fifo tools/ChampSim/replacement
+    cp -r Polices/lfu tools/ChampSim/replacement
+    cp -r Polices/mockingjay tools/ChampSim/replacement
+
     cd tools/ChampSim
     ./vcpkg/bootstrap-vcpkg.sh
     ./vcpkg/vcpkg install
