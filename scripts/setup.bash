@@ -49,12 +49,15 @@ configure_champsim() {
     echo "###############    Starting ChampSim Configuration    ###############"
     switch_gcc_version "$GCC_VERSION_11" "$GPP_VERSION_11"
     cp -r Polices/hawkeye/lib_hawkeye tools/ChampSim
-    cp -r Polices/hawkeye/Hawkeye_Predictor tools/ChampSim/replacement
+    cp -r Polices/Hawkeye_Predictor tools/ChampSim/replacement
     cp -r Polices/bip tools/ChampSim/replacement
     cp -r Polices/emissary tools/ChampSim/replacement
     cp -r Polices/fifo tools/ChampSim/replacement
     cp -r Polices/lfu tools/ChampSim/replacement
     cp -r Polices/mockingjay tools/ChampSim/replacement
+    cp -r Polices/pcn tools/ChampSim/replacement
+    cp -r Polices/rlr tools/ChampSim/replacement
+    cp -r Branch/tage tools/ChampSim/branch
 
     cd tools/ChampSim
     ./vcpkg/bootstrap-vcpkg.sh
@@ -107,9 +110,9 @@ main() {
 
     # Execute configurations
     configure_champsim
-    configure_intel_pin
-    configure_scarab
-    configure_gem5
+    #configure_intel_pin
+    #configure_scarab
+    #configure_gem5
 }
 
 # Run the main function

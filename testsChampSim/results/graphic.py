@@ -123,7 +123,43 @@ def plot_10bestIPC():
     # Show the final top 10 graph
     plt.show()
 
+def plot_eachtrace():
+    for trace, policies in data.items():
+        # Collect IPC values across all policies and branch prefetchers for this trace
+        aggregated_data = {}
+        for policy, branch_prefetchers in policies.items():
+            for branch_prefetcher, ipc in branch_prefetchers.items():
+                aggregated_data[f"{policy} | {branch_prefetcher}"] = ipc
+
+        # Sort the aggregated data by IPC values
+        sorted_items = sorted(aggregated_data.items(), key=lambda x: x[1])
+        labels = [item[0] for item in sorted_items]
+        values = [item[1] for item in sorted_items]
+
+        # Create the bar graph
+        plt.figure(figsize=(14, 8))
+        bars = plt.bar(labels, values, color=plt.cm.tab20.colors[:len(labels)])
+
+        # Highlight the highest IPC in green
+        max_value = max(values)
+        for bar, value in zip(bars, values):
+            color = 'green' if value == max_value else 'black'
+            plt.text(
+                bar.get_x() + bar.get_width() / 2.0, value,
+                f'{value:.2f}',
+                ha='center', va='bottom', fontsize=10, color=color
+            )
+
+        plt.xlabel('Policy | Branch_Prefetcher', fontsize=14)
+        plt.ylabel('IPC', fontsize=14)
+        plt.title(f'Trace: {trace} - IPC Comparison', fontsize=16)
+        plt.xticks(rotation=45, ha='right')
+        plt.tight_layout()
+
+        # Show the plot for this trace
+        plt.show()
 
 
+plot_eachtrace()
 #plot_everyone()
-plot_10bestIPC()
+#plot_10bestIPC()
