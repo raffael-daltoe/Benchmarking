@@ -1,95 +1,62 @@
-#include "Hawkeye_Predictor.h"
+/*  Hawkeye with Belady's Algorithm Replacement Policy
+    Code for Hawkeye configurations of 1 and 2 in Champsim */
 
-Hawkeye_Predictor* predictor_demand;  
-Hawkeye_Predictor* predictor_prefetch;  
+#include "cache.h"
+#include "../../lib_hawkeye/champsim_crc2.h"
+#include <map>
+#include <math.h>
 
-Hawkeye_Predictor::Hawkeye_Predictor(CACHE* cache) : 
-    replacement(cache), 
-    NUM_SET(cache->NUM_SET), 
-    NUM_WAY(cache->NUM_WAY)
-{
-    //uint32_t rrip[LLC_SETS][LLC_WAYS];
-	//uint32_t **rrip;
-    rrip = new uint32_t*[NUM_SET]; // Allocate an array of pointers for rows
-    prefetching = new bool*[NUM_SET];
-    sample_signature = new uint64_t*[NUM_SET];
-    
-    for (int i = 0; i < NUM_SET; i++) {
-        rrip[i] = new uint32_t[NUM_WAY]; // Allocate an array for each row
-        prefetching[i] = new bool[NUM_WAY];
-        sample_signature[i] = new uint64_t[NUM_WAY];
-    }
-    optgen_occup_vector = new OPTgen[NUM_SET];
-    set_timer = new uint64_t[NUM_SET];
-    
-}
+#define NUM_CORE 1
+#define LLC_SETS NUM_CORE*2048
+#define LLC_WAYS 16
 
-Hawkeye_Predictor::Hawkeye_Predictor() : 
-    champsim::modules::replacement(nullptr) 
-{
-    
-}
+//3-bit RRIP counter
+#define MAXRRIP 7
+uint32_t rrip[LLC_SETS][LLC_WAYS];
 
-	//Return prediction for PC Address
-bool Hawkeye_Predictor::get_prediction(uint64_t PC){
-	uint64_t result = CRC(PC) % PCMAP_SIZE;
-	if(PC_Map.find(result) != PC_Map.end() && PC_Map[result] < ((MAX_PCMAP+1)/2)){
-		return false;
-	}
-	return true;
-}
+#include "../../lib_hawkeye/hawkeye_predictor.h"
+#include "../../lib_hawkeye/optgen.h"
+#include "../../lib_hawkeye/helper_function.h"
 
-void Hawkeye_Predictor::increase(uint64_t PC){
-	uint64_t result = CRC(PC) % PCMAP_SIZE;
-	if(PC_Map.find(result) == PC_Map.end()){
-		PC_Map[result] = (MAX_PCMAP + 1)/2;
-	}
-	if(PC_Map[result] < MAX_PCMAP){
-		PC_Map[result] = PC_Map[result]+1;
-	}
-	else{
-		PC_Map[result] = MAX_PCMAP;
-	}
-}
+//Hawkeye predictors for demand and prefetch requests
+Hawkeye_Predictor* predictor_demand;    //2K entries, 5-bit counter per each entry
+Hawkeye_Predictor* predictor_prefetch;  //2K entries, 5-bit counter per each entry
 
-void Hawkeye_Predictor::decrease(uint64_t PC){
-	uint64_t result = CRC(PC) % PCMAP_SIZE;
-	if(PC_Map.find(result) == PC_Map.end()){
-		PC_Map[result] = (MAX_PCMAP + 1)/2;
-	}
-	if(PC_Map[result] != 0){
-		PC_Map[result] = PC_Map[result] - 1;
-	}
-}
+OPTgen optgen_occup_vector[LLC_SETS];   //64 vecotrs, 128 entries each
 
-//Hashed algorithm for PC: Cyclic Redundancy Check (CRC)
-uint64_t Hawkeye_Predictor::CRC(uint64_t address){
-	unsigned long long crcPolynomial = 3988292384ULL;  //Decimal value for 0xEDB88320 hex value
-    unsigned long long result = address;
-    for(unsigned int i = 0; i < 32; i++ )
-    	if((result & 1 ) == 1 ){
-    		result = (result >> 1) ^ crcPolynomial;
-    	}
-    	else{
-    		result >>= 1;
-    	}
-    return result;
-}
+//Prefectching
+bool prefetching[LLC_SETS][LLC_WAYS];
+
+//Sampler components tracking cache history
+#define SAMPLER_ENTRIES 2800
+#define SAMPLER_HIST 8
+#define SAMPLER_SETS SAMPLER_ENTRIES/SAMPLER_HIST
+vector<map<uint64_t, HISTORY>> cache_history_sampler;  //2800 entries, 4-bytes per each entry
+uint64_t sample_signature[LLC_SETS][LLC_WAYS];
+
+//History time
+#define TIMER_SIZE 1024
+uint64_t set_timer[LLC_SETS];   //64 sets, where 1 timer is used for every set
+
+//Mathmatical functions needed for sampling set
+#define bitmask(l) (((l) == 64) ? (unsigned long long)(-1LL) : ((1LL << (l))-1LL))
+#define bits(x, i, l) (((x) >> (i)) & bitmask(l))
+#define SAMPLED_SET(set) (bits(set, 0 , 6) == bits(set, ((unsigned long long)log2(LLC_SETS) - 6), 6) )  //Helper function to sample 64 sets for each core
 
 
 // Initialize replacement state
-void Hawkeye_Predictor::initialize_replacement()
+void CACHE::initialize_replacement()
 {
     //cout << "Initialize Hawkeye replacement policy state" << endl;
 
-    for (int i=0; i<NUM_SET; i++) {
-        for (int j=0; j<NUM_WAY; j++) {
+    for (int i=0; i<LLC_SETS; i++) {
+        for (int j=0; j<LLC_WAYS; j++) {
             rrip[i][j] = MAXRRIP;
             sample_signature[i][j] = 0;
             prefetching[i][j] = false;
         }
         set_timer[i] = 0;
-        optgen_occup_vector[i].init(NUM_WAY-2);
+        optgen_occup_vector[i].init(LLC_WAYS-2);
     }
 
     cache_history_sampler.resize(SAMPLER_SETS);
@@ -105,10 +72,10 @@ void Hawkeye_Predictor::initialize_replacement()
 
 // Find replacement victim
 // Return value should be 0 ~ 15 or 16 (bypass)
-uint32_t Hawkeye_Predictor::find_victim(uint32_t triggering_cpu, uint64_t instr_id, uint32_t set, const BLOCK* current_set, uint64_t ip, uint64_t full_addr, uint32_t type)
+uint32_t CACHE::find_victim(uint32_t triggering_cpu, uint64_t instr_id, uint32_t set, const BLOCK* current_set, uint64_t ip, uint64_t full_addr, uint32_t type)
 {
     //Find the line with RRPV of 7 in that set
-    for(uint32_t i = 0; i < NUM_WAY; i++){
+    for(uint32_t i = 0; i < LLC_WAYS; i++){
         if(rrip[set][i] == MAXRRIP){
             return i;
         }
@@ -117,7 +84,7 @@ uint32_t Hawkeye_Predictor::find_victim(uint32_t triggering_cpu, uint64_t instr_
     //If no RRPV of 7, then we find next highest RRPV value (oldest cache-friendly line)
     uint32_t max_rrpv = 0;
     int32_t victim = -1;
-    for(uint32_t i = 0; i < NUM_WAY; i++){
+    for(uint32_t i = 0; i < LLC_WAYS; i++){
         if(rrip[set][i] >= max_rrpv){
             max_rrpv = rrip[set][i];
             victim = i;
@@ -126,7 +93,7 @@ uint32_t Hawkeye_Predictor::find_victim(uint32_t triggering_cpu, uint64_t instr_
 
     //Asserting that LRU victim is not -1
     //Predictor will be trained negaively on evictions
-    if(is_sampled_set(set)){
+    if(SAMPLED_SET(set)){
         if(prefetching[set][victim]){
             predictor_prefetch->decrease(sample_signature[set][victim]);
         }
@@ -139,7 +106,7 @@ uint32_t Hawkeye_Predictor::find_victim(uint32_t triggering_cpu, uint64_t instr_
 }
 
 //Helper function for "UpdateReplacementState" to update cache history
-void Hawkeye_Predictor::update_cache_history(unsigned int sample_set, unsigned int currentVal){
+void update_cache_history(unsigned int sample_set, unsigned int currentVal){
     for(map<uint64_t, HISTORY>::iterator it = cache_history_sampler[sample_set].begin(); it != cache_history_sampler[sample_set].end(); it++){
         if((it->second).lru < currentVal){
             (it->second).lru++;
@@ -148,32 +115,17 @@ void Hawkeye_Predictor::update_cache_history(unsigned int sample_set, unsigned i
 
 }
 
-// Function to generate a bitmask of length 'l'
-unsigned long long Hawkeye_Predictor::bitmask(int l) {
-    return (l == 64) ? static_cast<unsigned long long>(-1LL) : ((1LL << l) - 1LL);
-}
-
-// Function to extract 'l' bits starting from position 'i' in 'x'
-unsigned long long Hawkeye_Predictor::bits(unsigned long long x, int i, int l) {
-    return (x >> i) & bitmask(l);
-}
-
-// Function to determine if the set is a sampled set
-bool Hawkeye_Predictor::is_sampled_set(uint32_t set) {
-    return bits(set, 0, 6) == bits(set, static_cast<int>(log2(NUM_SET)) - 6, 6);
-}
-
 // Called on every cache hit and cache fill
-void Hawkeye_Predictor::update_replacement_state (uint32_t cpu, uint32_t set, uint32_t way, uint64_t paddr, uint64_t PC, uint64_t victim_addr, uint32_t type, uint8_t hit)
+void CACHE::update_replacement_state (uint32_t cpu, uint32_t set, uint32_t way, uint64_t paddr, uint64_t PC, uint64_t victim_addr, uint32_t type, uint8_t hit)
 {
     paddr = (paddr >> 6) << 6;
 
     //Ignore all types that are writebacks
-    if(type == CACHE_WRITEBACK){
+    if(type == WRITEBACK){
         return;
     }
 
-    if(type == CACHE_PREFETCH){
+    if(type == PREFETCH){
         if(!hit){
             prefetching[set][way] = true;
         }
@@ -183,13 +135,13 @@ void Hawkeye_Predictor::update_replacement_state (uint32_t cpu, uint32_t set, ui
     }
 
     //Only if we are using sampling sets for OPTgen
-    if(is_sampled_set(set)){
+    if(SAMPLED_SET(set)){
         uint64_t currentVal = set_timer[set] % OPTGEN_SIZE;
         uint64_t sample_tag = CRC(paddr >> 12) % 256;
         uint32_t sample_set = (paddr >> 6) % SAMPLER_SETS;
 
         //If line has been used before, ignoring prefetching (demand access operation)
-        if((type != CACHE_PREFETCH) && (cache_history_sampler[sample_set].find(sample_tag) != cache_history_sampler[sample_set].end())){
+        if((type != PREFETCH) && (cache_history_sampler[sample_set].find(sample_tag) != cache_history_sampler[sample_set].end())){
             unsigned int current_time = set_timer[set];
             if(current_time < cache_history_sampler[sample_set][sample_tag].previousVal){
                 current_time += TIMER_SIZE;
@@ -241,7 +193,7 @@ void Hawkeye_Predictor::update_replacement_state (uint32_t cpu, uint32_t set, ui
             //Create new entry
             cache_history_sampler[sample_set][sample_tag].init();
             //If preftech, mark it as a prefetching or if not, just set the demand access
-            if(type == CACHE_PREFETCH){
+            if(type == PREFETCH){
                 cache_history_sampler[sample_set][sample_tag].set_prefetch();
                 optgen_occup_vector[set].set_prefetch(currentVal);
             }
@@ -279,7 +231,7 @@ void Hawkeye_Predictor::update_replacement_state (uint32_t cpu, uint32_t set, ui
 
     //Retrieve Hawkeye's prediction for line
     bool prediction = predictor_demand->get_prediction(PC);
-    if(type == CACHE_PREFETCH){
+    if(type == PREFETCH){
         prediction = predictor_prefetch->get_prediction(PC);
     }
     
@@ -293,14 +245,14 @@ void Hawkeye_Predictor::update_replacement_state (uint32_t cpu, uint32_t set, ui
         if(!hit){
             //Verifying RRPV of lines has not saturated
             bool isMaxVal = false;
-            for(uint32_t i = 0; i < NUM_WAY; i++){
+            for(uint32_t i = 0; i < LLC_WAYS; i++){
                 if(rrip[set][i] == MAXRRIP-1){
                     isMaxVal = true;
                 }
             }
 
             //Aging cache-friendly lines that have not saturated
-            for(uint32_t i = 0; i < NUM_WAY; i++){
+            for(uint32_t i = 0; i < LLC_WAYS; i++){
                 if(!isMaxVal && rrip[set][i] < MAXRRIP-1){
                     rrip[set][i]++;
                 }
@@ -312,11 +264,11 @@ void Hawkeye_Predictor::update_replacement_state (uint32_t cpu, uint32_t set, ui
 }
 
 // Use this function to print out your own stats on every heartbeat 
-void Hawkeye_Predictor::PrintStats_Heartbeat()
+void PrintStats_Heartbeat()
 {
     int hits = 0;
     int access = 0;
-    for(int i = 0; i < NUM_SET; i++){
+    for(int i = 0; i < LLC_SETS; i++){
         hits += optgen_occup_vector[i].get_optgen_hits();
         access += optgen_occup_vector[i].access;
     }
@@ -327,11 +279,11 @@ void Hawkeye_Predictor::PrintStats_Heartbeat()
 }
 
 // Use this function to print out your own stats at the end of simulation
-/*void Hawkeye_Predictor::replacement_final_stats()
+void CACHE::replacement_final_stats()
 {
     int hits = 0;
     int access = 0;
-    for(int i = 0; i < NUM_SET; i++){
+    for(int i = 0; i < LLC_SETS; i++){
         hits += optgen_occup_vector[i].get_optgen_hits();
         access += optgen_occup_vector[i].access;
     }
@@ -340,4 +292,4 @@ void Hawkeye_Predictor::PrintStats_Heartbeat()
     cout<< "Final OPTGen Access: " << access << endl;
     cout<< "Final OPTGEN Hit Rate: " << 100 * ( (double)hits/(double)access )<< endl;
 
-}*/
+}

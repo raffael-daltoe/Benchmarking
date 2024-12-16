@@ -1,4 +1,15 @@
-#include "rlr.h"
+#include <algorithm>
+#include <climits>
+#include <cstddef>
+#include <map>
+#include <vector>
+
+#include "cache.h"
+
+enum Type {
+    High = 1,
+    Low = 0
+};
 
 class SetRD {
     private:
@@ -33,9 +44,9 @@ class Status {
     int typeAccess;  // if the last access type is a PREFETCH, typeAcess = 0
     int typeHit;     // if this cache line has had a hit before(1), else 0
 
-    rlr::Type ageP;         // Age Priority
-    rlr::Type typeAccessP;  // Access Priority
-    rlr::Type typeHitP;     // Hit Priority
+    Type ageP;         // Age Priority
+    Type typeAccessP;  // Access Priority
+    Type typeHitP;     // Hit Priority
 
     int internalCounter = 0;  // temp variable used to increment ageCounter
                               // every 8th turn, used in `countAge()` function
@@ -72,9 +83,9 @@ class Status {
 
     // calculates all the priorities and outputs final priority
     int returnPriority(int reuseDistance) {
-        ageP = ageCounter < reuseDistance ? rlr::High : rlr::Low;
-        typeHitP = typeHit == 1 ? rlr::High: rlr::Low;
-        typeAccessP = typeAccess == 1? rlr::High: rlr::Low;
+        ageP = ageCounter < reuseDistance ? High : Low;
+        typeHitP = typeHit == 1 ? High: Low;
+        typeAccessP = typeAccess == 1? High: Low;
 
         int priority = 8 * ageP + typeHitP + typeAccessP;
         return priority;
@@ -104,22 +115,18 @@ class Status {
     }
 };
 
-std::map<rlr*, std::vector<Status>> feature_entries;
-std::map<rlr*, std::vector<SetRD>> rd_entries;
+std::map<CACHE*, std::vector<Status>> feature_entries;
+std::map<CACHE*, std::vector<SetRD>> rd_entries;
 
-rlr::rlr(CACHE* cache)
-    : replacement(cache), NUM_SET(cache->NUM_SET), NUM_WAY(cache->NUM_WAY) {}
-
-void rlr::initialize_replacement() {
+void CACHE::initialize_replacement() {
     feature_entries[this] = std::vector<Status>(NUM_SET * NUM_WAY);
     rd_entries[this] = std::vector<SetRD>(NUM_SET);  // how do I initialize rd_entries for each set?
 }
 
 
-long rlr::find_victim(uint32_t triggering_cpu, uint64_t instr_id, long set, 
-    const champsim::cache_block* current_set, champsim::address ip,
-    champsim::address full_addr, access_type type)
-{           
+uint32_t CACHE::find_victim(uint32_t triggering_cpu, uint64_t instr_id, uint32_t set, const BLOCK* current_set, uint64_t ip, uint64_t full_addr, uint32_t type) {
+    // is this called even if the set has empty slots? assuming no
+   
     std::vector<std::vector<int>>priorityList;
     // store priority, recency and way number of all slots to determine which way to evict
     for(int i = 0; i < NUM_WAY; i++) {
@@ -135,11 +142,8 @@ long rlr::find_victim(uint32_t triggering_cpu, uint64_t instr_id, long set,
     return priorityList[0][2]; // return way index of least priority slot
 }
 
-void rlr::update_replacement_state(uint32_t triggering_cpu, long set, long way, 
-    champsim::address full_addr, champsim::address ip, 
-    champsim::address victim_addr, access_type type, uint8_t hit)
-{
-
+void CACHE::update_replacement_state(uint32_t triggering_cpu, uint32_t set, uint32_t way, uint64_t full_addr, uint64_t ip, uint64_t victim_addr, uint32_t type, uint8_t hit) {
+    // what is up with all the write back bullshit happening in every other policy inside `update_replacement_state`
     if (hit && access_type{type} == access_type::WRITE) {
         return;
     }
@@ -171,3 +175,5 @@ void rlr::update_replacement_state(uint32_t triggering_cpu, long set, long way,
         feature_entries[this][set*NUM_WAY + way].reset(access);
     }
 }
+
+void CACHE::replacement_final_stats() {}
