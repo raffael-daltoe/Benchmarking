@@ -2,103 +2,127 @@ import os
 import subprocess
 from concurrent.futures import ThreadPoolExecutor
 import threading
-import time
 import sys
+import re
+import time
 
 class ScarabExecutor:
-    def __init__(self, scarab_path, policies):
+    def __init__(self, scarab_path, policies, policies_Cache,
+                 threads, trace_dir, output_dir,
+                 simulation_instructions, param):
         self.scarab_path = scarab_path
         self.policies = policies
-        self.semaphore = threading.Semaphore(1)
-        self.modified_content = []
+        self.policies_cache = policies_Cache
+        self.threads = threads
+        self.trace_dir = trace_dir
+        self.output_dir = output_dir
+        self.simulation_instructions = simulation_instructions
+        self.param = param
+        self.modified_config = None
+        self.S1_semaphore = threading.Semaphore(1)
+        self.S2_semaphore = threading.Semaphore(1)
 
-    def exec_single_trace(self, trace_file, trace_path, output_dir, simulation_instructions, policy):
+    def exec_single_trace(self, trace_file, trace_path, policy_MM, policy_Cache):
         trace_name = os.path.splitext(trace_file)[0]
-
-        # Compute the path to the 'bin' folder, which is two levels up from trace_path
         bin_dir = os.path.abspath(os.path.join(trace_path, "../../bin"))
-
-        # Create the output directory for this trace_name and policy
-        trace_output_dir = os.path.join(output_dir, trace_name, policy)
+        trace_output_dir = os.path.join(self.output_dir, trace_name, policy_MM, policy_Cache)
         os.makedirs(trace_output_dir, exist_ok=True)
 
-        # Scarab command to execute
         command = [
             os.path.join(self.scarab_path, "src/scarab"),
             "--frontend", "memtrace",
             "--fetch_off_path_ops", "0",
             f"--cbp_trace_r0={trace_path}",
-            f"--inst_limit={simulation_instructions}",
+            f"--inst_limit={self.simulation_instructions}",
             f"--memtrace_modules_log={bin_dir}",
-            f"--output_dir={trace_output_dir}"  # Ensure this directory is used
+            f"--output_dir={trace_output_dir}"
         ]
 
         print(f"Executing Scarab for {trace_file} with command: {' '.join(command)}")
 
-        # Release the semaphore before starting the subprocess
-        self.semaphore.release()
+        self.S1_semaphore.release()
+        self.S2_semaphore.release()
         subprocess.run(command)
 
-    def modify_replacement_policy(self, config_file, policy):
-        time.sleep(0.5)
-        self.semaphore.acquire()
+    def modify_replacement_cache(self, new_policy):
+        time.sleep(2)
+        self.S1_semaphore.acquire()
 
-        with open(config_file, 'r') as file:
-            lines = file.readlines()
+        with open(self.param, 'r') as file:
+            content = file.read()
 
-        self.modified_content = [
-            f"--ramulator_scheduling_policy\t{policy}\n" if line.startswith("--ramulator_scheduling_policy") else line
-            for line in lines
-        ]
+        pattern = r"(--(?:l1_cache_repl_policy|icache_repl|dcache_repl)\s+)\S+"
+        updated_content = re.sub(pattern, rf"\1{new_policy}", content)
 
-        # Return the path where the new file will be saved
-        #return os.path.join(self.scarab_path, 'src', os.path.basename(config_file))
-        return config_file
+        with open(self.param, 'w') as file:
+            file.write(updated_content)
 
-    def write_file(self, file_path):
-        param_scarab = os.path.join(self.scarab_path, 'src', os.path.basename(file_path))
+        self.modified_config = {
+            'l1_cache_repl_policy': new_policy,
+            'icache_repl': new_policy,
+            'dcache_repl': new_policy
+        }
 
-        with open(param_scarab, 'w') as new_file:
-            new_file.writelines(self.modified_content)
-        print(f"File written to: {param_scarab}")
+    def modify_replacement_policy(self, new_policy):
+        time.sleep(2)
+        self.S2_semaphore.acquire()
 
-        parent_dir_path = os.path.join(os.path.dirname(file_path), "..", os.path.basename(file_path))
-        parent_dir_path = os.path.abspath(parent_dir_path)
+        with open(self.param, 'r') as file:
+            content = file.read()
 
-        with open(parent_dir_path, 'w') as parent_file:
-            parent_file.writelines(self.modified_content)
+        pattern = r"(--ramulator_scheduling_policy\s+)\S+"
+        updated_content = re.sub(pattern, rf"\1{new_policy}", content)
 
-    def prepare_execution(self, executor, output_dir, simulation_instructions, trace_folder, policy):
+        with open(self.param, 'w') as file:
+            file.write(updated_content)
+
+        if self.modified_config:
+            self.modified_config['ramulator_scheduling_policy'] = new_policy
+        else:
+            self.modified_config = {'ramulator_scheduling_policy': new_policy}
+
+    def write_file(self):
+        output_path = os.path.join(self.scarab_path, "src/PARAMS.in")
+
+        with open(self.param, 'r') as original_file:
+            original_content = original_file.read()
+
+        with open(output_path, 'w') as modified_file:
+            if self.modified_config:
+                for key, value in self.modified_config.items():
+                    pattern = rf"(--{key}\s+)\S+"
+                    original_content = re.sub(pattern, rf"\1{value}", original_content)
+
+            modified_file.write(original_content)
+
+        print(f"Configuration file written to {output_path}")
+
+    def prepare_execution(self, executor, policy_MM, policy_Cache,trace_folder):
         for trace_file in os.listdir(trace_folder):
             if trace_file.endswith('.trace.gz') or trace_file.endswith('.champsimtrace.xz'):
+                print(f"final here, with: {self.trace_dir} and {trace_file}")
                 trace_path = os.path.join(trace_folder, trace_file)
-                print(f"Submitting trace for processing: {trace_path} with {policy}")
-                executor.submit(
-                    self.exec_single_trace, trace_file, trace_path, output_dir,
-                    simulation_instructions, policy
-                )
+                print(f"Submitting trace for processing: {trace_path} with MM = {policy_MM} and Cache = {policy_Cache} replacements")
+                executor.submit(self.exec_single_trace, trace_file, trace_path, policy_MM, policy_Cache)
 
-    def modify_params(self, param, executor, output_dir, simulation_instructions, trace_folder):
-        for policy in self.policies:
-            file_to_be_written = self.modify_replacement_policy(param, policy)
-            self.write_file(file_to_be_written)
-            self.prepare_execution(executor, output_dir, simulation_instructions, trace_folder, policy)
+    def execute_all_traces(self):
+        os.makedirs(self.output_dir, exist_ok=True)
 
-
-def execute_all_traces(scarab_executor, trace_dir, output_dir, simulation_instructions, threads, param):
-    # Create output directory if not exists
-    os.makedirs(output_dir, exist_ok=True)
-
-    with ThreadPoolExecutor(max_workers=threads) as executor:
-        for trace_subdir in os.listdir(trace_dir):
-            full_subdir_path = os.path.join(trace_dir, trace_subdir)
+        with ThreadPoolExecutor(max_workers=self.threads) as executor:
+            for trace_subdir in os.listdir(self.trace_dir):
+                full_subdir_path = os.path.join(self.trace_dir, trace_subdir)
             
-            if os.path.isdir(full_subdir_path):
-                trace_folder = os.path.join(full_subdir_path, 'trace')
-                
-                if os.path.exists(trace_folder):
-                    scarab_executor.modify_params(param, executor, output_dir, simulation_instructions, trace_folder)
-
+                if os.path.isdir(full_subdir_path):
+                    trace_folder = os.path.join(full_subdir_path, 'trace')
+                    if os.path.exists(trace_folder):
+                        if len(self.policies) != 0:
+                            for policy_MM in self.policies:
+                                if len(self.policies_cache) != 0:
+                                    for policy_Cache in self.policies_cache:
+                                        self.modify_replacement_policy(policy_MM)
+                                        self.modify_replacement_cache(policy_Cache)
+                                        self.write_file()
+                                        self.prepare_execution(executor, policy_MM, policy_Cache,trace_folder)
 
 def is_number(value):
     try:
@@ -106,7 +130,6 @@ def is_number(value):
         return True
     except ValueError:
         return False
-
 
 def main():
     if len(sys.argv) < 7:
@@ -121,7 +144,6 @@ def main():
         print("Please provide a valid number of threads.")
         sys.exit(1)
 
-    # Get paths and instructions from command line arguments
     scarab_path = sys.argv[2]
     trace_dir = sys.argv[3]
     output_dir = sys.argv[4]
@@ -129,12 +151,10 @@ def main():
     param = sys.argv[6]
 
     policies = ["FCFS", "FRFCFS", "FRFCFS_Cap", "FRFCFS_PriorHit"]
+    policies_Cache = ["REPL_TRUE_LRU", "REPL_RANDOM", "REPL_NOT_MRU", "REPL_ROUND_ROBIN", "REPL_IDEAL", "REPL_ISO_PREF", "REPL_LOW_PREF", "REPL_SHADOW_IDEAL", "NUM_REPL", "REPL_IDEAL_STORAGE", "REPL_MLP", "REPL_PARTITION"]
 
-    # Create an instance of the ScarabExecutor
-    scarab_executor = ScarabExecutor(scarab_path, policies)
-
-    execute_all_traces(scarab_executor, trace_dir, output_dir, simulation_instructions, threads, param)
-
+    scarab_executor = ScarabExecutor(scarab_path, policies, policies_Cache, threads, trace_dir, output_dir, simulation_instructions, param)
+    scarab_executor.execute_all_traces()
 
 if __name__ == "__main__":
     main()

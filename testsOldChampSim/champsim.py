@@ -50,7 +50,7 @@ class ChampSimRunner:
                 print(f"Downloaded {file_name}.")
 
     def modify_replacement_policy(self, policy):
-        time.sleep(0.5)
+        #time.sleep(0.5)
         self.S1_replacement.acquire()
         with open(self.config_file, 'r') as file:
             config = json.load(file)
@@ -59,19 +59,19 @@ class ChampSimRunner:
         self.modified_config = config  
         
     def modify_prefetcher(self,prefetch):
-        time.sleep(0.5)
+        #time.sleep(0.5)
         self.S2_replacement.acquire()
 
-        self.modified_config['L1I']['prefetcher'] = prefetch
-        self.modified_config['L1D']['prefetcher'] = prefetch
-        self.modified_config['L2C']['prefetcher'] = prefetch
+        #self.modified_config['L1I']['prefetcher'] = prefetch
+        #self.modified_config['L1D']['prefetcher'] = prefetch
+        #self.modified_config['L2C']['prefetcher'] = prefetch
         self.modified_config['LLC']['prefetcher'] = prefetch
         
 
        # self.modified_config = config  
         
     def modify_branch(self,branch):
-        time.sleep(0.5)
+        #time.sleep(0.5)
         self.S3_replacement.acquire()
         self.modified_config['ooo_cpu'][0]['branch_predictor'] = branch
 
@@ -133,10 +133,10 @@ class ChampSimRunner:
             print(f"Executing ChampSim for {trace_file} with policy {policy} "
               f"branch {branch} and prefetch {prefetch}...")
             self.S1_replacement.release()
-            #self.S2_replacement.release()
-            #self.S3_replacement.release()
+            self.S2_replacement.release()
+            self.S3_replacement.release()
             
-            subprocess.run(command, stdout=outfile)
+            subprocess.run(command, stdout=outfile, stderr=outfile)
         print(f"Output for {trace_file} with policy {policy} "
               f"branch {branch} and prefetch {prefetch} "
               f"stored in {output_file}")
@@ -156,25 +156,23 @@ class ChampSimRunner:
     def execute_all_policies(self, trace_urls):
         if not os.path.exists(self.output_dir):
             os.makedirs(self.output_dir)
-        branch = "bimodal"
-        prefetch = "no"
         
         #self.download_traces(trace_urls)
         with ThreadPoolExecutor(max_workers=self.threads) as executor:
             if len(self.policies) != 0:
                 for policy in self.policies:
-                    #if len(self.prefetchs) != 0:
-                        #for prefetch in self.prefetchs:
-                            #if len(self.branchs) != 0:
-                                #for branch in self.branchs:
-                    self.modify_replacement_policy(policy)
-                    #self.modify_prefetcher(prefetch)
-                    #self.modify_branch(branch)
-                    self.modify_name_file(policy,prefetch,
-                                                         branch)
-                    self.write_file(self.config_file)
-                    self.prepare_execution(executor, policy,
-                                                branch, prefetch)
+                    if len(self.prefetchs) != 0:
+                        for prefetch in self.prefetchs:
+                            if len(self.branchs) != 0:
+                                for branch in self.branchs:
+                                    self.modify_replacement_policy(policy)
+                                    self.modify_prefetcher(prefetch)
+                                    self.modify_branch(branch)
+                                    self.modify_name_file(policy,prefetch,
+                                                                         branch)
+                                    self.write_file(self.config_file)
+                                    self.prepare_execution(executor, policy,
+                                                               branch, prefetch)
             else:
                 self.prepare_execution(executor, None)
 
@@ -216,7 +214,7 @@ def main():
     # bip, 
     
     policies = ["bip","hawkeye","fifo","emissary","pcn","rlr","drrip","lru","ship","srrip" ]
-    prefetchs = ["ip_stride", "next_line", "no"]
+    prefetchs = ["va_ampm_lite","spp_dev","next_line","ip_stride","no"]
 
     branchs = ["bimodal", "gshare", "hashed_perceptron", "perceptron","tage"]
     
