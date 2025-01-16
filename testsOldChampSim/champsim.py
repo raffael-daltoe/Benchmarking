@@ -50,7 +50,7 @@ class ChampSimRunner:
                 print(f"Downloaded {file_name}.")
 
     def modify_replacement_policy(self, policy):
-        #time.sleep(0.5)
+        time.sleep(2)
         self.S1_replacement.acquire()
         with open(self.config_file, 'r') as file:
             config = json.load(file)
@@ -59,7 +59,7 @@ class ChampSimRunner:
         self.modified_config = config  
         
     def modify_prefetcher(self,prefetch):
-        #time.sleep(0.5)
+        time.sleep(2)
         self.S2_replacement.acquire()
 
         #self.modified_config['L1I']['prefetcher'] = prefetch
@@ -71,7 +71,7 @@ class ChampSimRunner:
        # self.modified_config = config  
         
     def modify_branch(self,branch):
-        #time.sleep(0.5)
+        time.sleep(2)
         self.S3_replacement.acquire()
         self.modified_config['ooo_cpu'][0]['branch_predictor'] = branch
 

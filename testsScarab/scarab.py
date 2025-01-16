@@ -9,7 +9,7 @@ import time
 class ScarabExecutor:
     def __init__(self, scarab_path, policies, policies_Cache,
                  threads, trace_dir, output_dir,
-                 simulation_instructions, param):
+                 simulation_instructions, warmup, param):
         self.scarab_path = scarab_path
         self.policies = policies
         self.policies_cache = policies_Cache
@@ -17,6 +17,7 @@ class ScarabExecutor:
         self.trace_dir = trace_dir
         self.output_dir = output_dir
         self.simulation_instructions = simulation_instructions
+        self.warmup_instructions = warmup
         self.param = param
         self.modified_config = None
         self.S1_semaphore = threading.Semaphore(1)
@@ -33,6 +34,7 @@ class ScarabExecutor:
             "--frontend", "memtrace",
             "--fetch_off_path_ops", "0",
             f"--cbp_trace_r0={trace_path}",
+            f"--warmup={self.warmup_instructions}",
             f"--inst_limit={self.simulation_instructions}",
             f"--memtrace_modules_log={bin_dir}",
             f"--output_dir={trace_output_dir}"
@@ -133,7 +135,7 @@ def is_number(value):
 
 def main():
     if len(sys.argv) < 7:
-        print("Usage: python3 script.py <number_of_threads> <scarab_path> <trace_dir> <output_dir> <simulation_instructions> <param>")
+        print("Usage: python3 script.py <number_of_threads> <scarab_path> <trace_dir> <output_dir> <simulation_instructions> <warmup> <param>")
         sys.exit(1)
 
     try:
@@ -148,12 +150,13 @@ def main():
     trace_dir = sys.argv[3]
     output_dir = sys.argv[4]
     simulation_instructions = int(sys.argv[5]) if len(sys.argv) > 5 and is_number(sys.argv[5]) else None
-    param = sys.argv[6]
+    warmup = sys.argv[6]
+    param = sys.argv[7]
 
     policies = ["FCFS", "FRFCFS", "FRFCFS_Cap", "FRFCFS_PriorHit"]
     policies_Cache = ["REPL_TRUE_LRU", "REPL_RANDOM", "REPL_NOT_MRU", "REPL_ROUND_ROBIN", "REPL_IDEAL", "REPL_ISO_PREF", "REPL_LOW_PREF", "REPL_SHADOW_IDEAL", "NUM_REPL", "REPL_IDEAL_STORAGE", "REPL_MLP", "REPL_PARTITION"]
 
-    scarab_executor = ScarabExecutor(scarab_path, policies, policies_Cache, threads, trace_dir, output_dir, simulation_instructions, param)
+    scarab_executor = ScarabExecutor(scarab_path, policies, policies_Cache, threads, trace_dir, output_dir, simulation_instructions, warmup, param)
     scarab_executor.execute_all_traces()
 
 if __name__ == "__main__":

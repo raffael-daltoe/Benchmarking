@@ -22,6 +22,7 @@ PROGRAM ?=
 ENABLE_ASLR  ?=
 SCARAB_ARGS  ?=
 PINTOOL_ARGS ?=
+WARMUP_INSTRUCTIONS     = 50000000 
 SIMULATION_INSTRUCTIONS = 450000000
 
 #####################################################
@@ -116,7 +117,7 @@ launch-all: check-param
 	@mkdir -p simulations/
 #	@cp $(PARAM) PARAMS.in 
 	@python3 scarab.py $(nproc) $(SCARAB_DIR) $(TRACE_DIR) $(SIM_OUT) \
-	$(SIMULATION_INSTRUCTIONS) $(PARAM)
+	$(SIMULATION_INSTRUCTIONS) $(WARMUP_INSTRUCTIONS) $(PARAM)
 #	@rm PARAMS.in
 
 

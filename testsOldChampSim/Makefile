@@ -24,8 +24,8 @@ BIN_CHAMPSIM = $(CHAMPSIM_DIR)/bin/champsim
 # PARAMETERS TO CHANGE FOR PYTHON SCRIPT
 #####################################################
 
-WARMUP_INSTRUCTIONS     = 1000000 
-SIMULATION_INSTRUCTIONS = 600000000 
+WARMUP_INSTRUCTIONS     = 50000000 
+SIMULATION_INSTRUCTIONS = 600000000
 
 
 #####################################################
