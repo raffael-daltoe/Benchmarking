@@ -65,17 +65,17 @@ class ChampSimRunner:
                 print(f"Downloaded {file_name}.")
 
     def modify_replacement_policy(self, policy):
-        time.sleep(2)
+        time.sleep(0.2)
         self.S1_replacement.acquire()
         self.modified_config['LLC']['replacement'] = policy
 
     def modify_prefetcher(self,prefetch):
-        time.sleep(2)
+        time.sleep(0.3)
         self.S2_replacement.acquire()
         self.modified_config['LLC']['prefetcher'] = prefetch
         
     def modify_branch(self,branch):
-        time.sleep(2)
+        time.sleep(0.35)
         self.S3_replacement.acquire()
         self.modified_config['ooo_cpu'][0]['branch_predictor'] = branch
     
@@ -113,47 +113,61 @@ class ChampSimRunner:
         else:
             print("No configuration changes to write.")
 
-    def exec_single_trace(self, trace_file, trace_path, policy, branch,
-                                                                      prefetch):
+    def exec_single_trace(self, trace_file, trace_path, policy, branch, prefetch):
         trace_name = os.path.splitext(trace_file)[0]
-        output_file = os.path.join(self.output_dir, 
+        temp_output_file = os.path.join(self.output_dir, 
             f"{trace_name}_pol:{policy}_bra:{branch}_pre:{prefetch}_output.txt")
+        final_output_file = os.path.join(self.output_dir, 
+            f"{trace_name}_pol:{policy}_bra:{branch}_pre:{prefetch}_output_DONE.txt")
 
         bin = 'bin/' + self.config_bin_name
 
-        command = [ os.path.join(self.champ_sim_path, bin)]
+        command = [os.path.join(self.champ_sim_path, bin)]
 
         if self.warmup_instructions:
-            command.extend(["--warmup-instructions", 
-                                                 str(self.warmup_instructions)])
+            command.extend(["--warmup-instructions", str(self.warmup_instructions)])
         if self.simulation_instructions:
-            command.extend(["--simulation-instructions", 
-                                             str(self.simulation_instructions)])
+            command.extend(["--simulation-instructions", str(self.simulation_instructions)])
         command.append(trace_path)
 
-        with open(output_file, 'w') as outfile:
-            print(f"Executing ChampSim for {trace_file} with policy {policy} "
-              f"branch {branch} and prefetch {prefetch}...")
-            self.S1_replacement.release()
-            self.S2_replacement.release()
-            self.S3_replacement.release()
-            
-            subprocess.run(command, stdout=outfile, stderr=outfile)
-        print(f"Output for {trace_file} with policy {policy} "
-              f"branch {branch} and prefetch {prefetch} "
-              f"stored in {output_file}")
-        self.SGlobal.release()
+        print(f"Executing ChampSim for {trace_file} with policy {policy} "
+            f"branch {branch} and prefetch {prefetch}...")
+        self.S1_replacement.release()
+        self.S2_replacement.release()
+        self.S3_replacement.release()
+
+        try:
+            with open(temp_output_file, 'w') as outfile:
+                subprocess.run(command, stdout=outfile, stderr=outfile, check=True)
+            # Rename the output file to include '_DONE' after successful execution
+            os.rename(temp_output_file, final_output_file)
+            print(f"Output for {trace_file} with policy {policy} "
+                f"branch {branch} and prefetch {prefetch} "
+                f"stored in {final_output_file}")
+        except subprocess.CalledProcessError as e:
+            print(f"Error occurred while executing ChampSim for {trace_file}: {e}")
+        finally:
+            self.SGlobal.release()
+
 
     def prepare_execution(self, executor, policy, branch, prefetch):
         for trace_file in os.listdir(self.trace_dir):
-            if (trace_file.endswith('.champsimtrace') or 
-                                                    trace_file.endswith('.xz')):
+            if trace_file.endswith('.champsimtrace') or trace_file.endswith('.xz'):
+                # Remove the extensions .xz or .champsimtrace
+                if trace_file.endswith('.xz'):
+                    clean_trace_file = trace_file[:-3]
+                elif trace_file.endswith('.champsimtrace'):
+                    clean_trace_file = trace_file[:-13]
                 
-                trace_path = os.path.join(self.trace_dir, trace_file)
-                self.SGlobal.acquire()
-                executor.submit(self.exec_single_trace, trace_file, trace_path, 
-                                                                policy, branch,
-                                                                prefetch )
+                if self.verify_already_executed(policy, prefetch, branch, clean_trace_file):
+                    continue
+                else:
+                    trace_path = os.path.join(self.trace_dir, trace_file)
+                    self.SGlobal.acquire()
+                    # Pass the cleaned trace file without extensions
+                    executor.submit(self.exec_single_trace, clean_trace_file, trace_path, 
+                                    policy, branch, prefetch)
+                                                            
     def modify_size_cache(self, L1I, L1D, L2, LLC):
         with open(self.config_file, 'r') as file:
             config = json.load(file)
@@ -228,6 +242,19 @@ class ChampSimRunner:
         with open(file_path, 'w') as file:
             file.write(content)
 
+    def verify_already_executed(self,policy, prefetch, branch,trace_name):
+        try:
+            if not os.path.exists(self.output_dir):
+                raise UnboundLocalError
+            file_name = f"{trace_name}_pol:{policy}_bra:{branch}_pre:{prefetch}_output_DONE.txt"
+            for name in os.listdir(self.output_dir):
+                if name == file_name:
+                    print(f"File {file_name} already executed")
+                    return True
+            return False
+        except UnboundLocalError:
+            print(f"Directory not found: {self.output_dir}")
+            sys.exit(1)
     
     def execute_all_policies(self, trace_urls):
         if not os.path.exists(self.output_dir):
@@ -257,12 +284,12 @@ class ChampSimRunner:
                                         self.modify_prefetcher(prefetch)
                                         self.modify_branch(branch)
                                         self.modify_name_file(policy, prefetch, 
-                                                                         branch)
+                                                                        branch)
                                         
                                         self.write_file(self.config_file)
                                         
                                         self.prepare_execution(executor, policy, 
-                                                               branch, prefetch)
+                                                            branch, prefetch)
                 else:
                     self.prepare_execution(executor, None)
 
@@ -313,29 +340,29 @@ def main():
     L1I_config = [  CacheConfig(64,8,4),
                     CacheConfig(64,8,4),
                     CacheConfig(64,8,4),
-                    #CacheConfig(64,8,4),
-                    #CacheConfig(64,8,4),
+                    CacheConfig(64,8,4),
+                    CacheConfig(64,8,4),
                  ]
     
     L1D_config = [  CacheConfig(64,8,4),
                     CacheConfig(64,12,5),
                     CacheConfig(64,8,4),
-                    #CacheConfig(64,8,4),
-                    #CacheConfig(64,12,4),
+                    CacheConfig(64,8,4),
+                    CacheConfig(64,12,4),
                  ]
     
     L2_config = [   CacheConfig(512,8,8),
                     CacheConfig(820,8,8),
                     CacheConfig(512,8,8),
-                    #CacheConfig(512,8,8),
-                    #CacheConfig(1024,8,15),
+                    CacheConfig(512,8,8),
+                    CacheConfig(1024,8,15),
                  ]
     
     LLC_Config = [  CacheConfig(2048,16,20),
                     CacheConfig(2048,16,22),
                     CacheConfig(4096,16,21),
-                    #CacheConfig(8192,16,22),
-                    #CacheConfig(2048,16,45),
+                    CacheConfig(8192,16,22),
+                    CacheConfig(2048,16,45),
                  ]
     
 

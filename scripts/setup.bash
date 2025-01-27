@@ -81,7 +81,7 @@ configure_intel_pin() {
 configure_scarab() {
     echo "###############    Starting Scarab Configuration    ###############"
     switch_gcc_version "$GCC_VERSION_7" "$GPP_VERSION_7"
-    cd scarab/src
+    cd tools/scarab/src
     make -j"${nproc}" -s
     cd deps/dynamorio/
     cmake . && make -j"${nproc}"
@@ -93,26 +93,26 @@ configure_gem5() {
     echo "###############    Starting GEM5 Configuration    ###############"
     switch_gcc_version "$GCC_VERSION_11" "$GPP_VERSION_11"
     cp ../Fixldgem5/ld-linux.so.3 /lib/
-    cd gem5
+    cd tools/gem5
     echo | scons build/ARM/gem5.opt -j"${nproc}"  # Skip the prompt
     cd ..
 }
 
 # Main script execution
 main() {
-    #clean_submodules
-    #init_submodules
+    clean_submodules
+    init_submodules
 
     ## Apply patches to all submodules
-    #for submodule in $(git submodule status | awk '{print $2}'); do
-    #    apply_patches "$submodule"
-    #done
+    for submodule in $(git submodule status | awk '{print $2}'); do
+        apply_patches "$submodule"
+    done
 
     # Execute configurations
     configure_champsim
     configure_intel_pin
-    #configure_scarab
-    #configure_gem5
+    configure_scarab
+    configure_gem5
 }
 
 # Run the main function
