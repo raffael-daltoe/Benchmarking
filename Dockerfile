@@ -71,6 +71,10 @@ RUN apt-get update && apt-get install -y \
     libhdf5-serial-dev \
     libpng-dev \
     libelf-dev \
+    g++-9-arm-linux-gnueabi \
+    gcc-9-arm-linux-gnueabi \
+    gcc-arm-linux-gnueabi \
+    g++-arm-linux-gnueabi \ 
     sudo \
     && update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-11 70 \
     && update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-11 70 \

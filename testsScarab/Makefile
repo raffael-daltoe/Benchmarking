@@ -23,7 +23,7 @@ ENABLE_ASLR  ?=
 SCARAB_ARGS  ?=
 PINTOOL_ARGS ?=
 WARMUP_INSTRUCTIONS     = 50000000 
-SIMULATION_INSTRUCTIONS = 450000000
+SIMULATION_INSTRUCTIONS = 600000000
 
 #####################################################
 
@@ -71,6 +71,11 @@ trace-program: compile
 			./$(DYNAMORIO_DIR)/bin64/drrun -root $(DYNAMORIO_DIR) \
 				-t drcachesim -offline \
 				-outdir $(TRACE_DIR) \
+				-cores 1 \
+				-jobs 32 \
+				-exit_after_tracing $(SIMULATION_INSTRUCTIONS) \
+				-L1I_size 256K -L1D_size 256K -L0I_size 32K -L0D_size 32K \
+				-LL_size 2M -L1I_assoc 8 -L1D_assoc 8 -LL_assoc 16 \
 				-- $$bin; \
 			( cd $(TRACE_DIR) && \
 			  bash ../convert-trace/run_portabilize_trace.sh > /dev/null 2>&1 && \
@@ -114,8 +119,8 @@ launch-trace: check-param
 	@rm PARAMS.in
 
 launch-all: check-param
-	@mkdir -p simulations/
-#	@cp $(PARAM) PARAMS.in 
+#	@mkdir -p simulations/
+	@cp $(PARAM) PARAMS.in 
 	@python3 scarab.py $(nproc) $(SCARAB_DIR) $(TRACE_DIR) $(SIM_OUT) \
 	$(SIMULATION_INSTRUCTIONS) $(WARMUP_INSTRUCTIONS) $(PARAM)
 #	@rm PARAMS.in

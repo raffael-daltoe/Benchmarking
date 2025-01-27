@@ -34,7 +34,7 @@ class ScarabExecutor:
             "--frontend", "memtrace",
             "--fetch_off_path_ops", "0",
             f"--cbp_trace_r0={trace_path}",
-            f"--warmup={self.warmup_instructions}",
+            #f"--warmup={self.warmup_instructions}",
             f"--inst_limit={self.simulation_instructions}",
             f"--memtrace_modules_log={bin_dir}",
             f"--output_dir={trace_output_dir}"
@@ -84,20 +84,26 @@ class ScarabExecutor:
             self.modified_config = {'ramulator_scheduling_policy': new_policy}
 
     def write_file(self):
-        output_path = os.path.join(self.scarab_path, "src/PARAMS.in")
-
+        # Define both output paths
+        scarab_output_path = os.path.join(self.scarab_path, "src/PARAMS.in")
+        local_output_path = os.path.join(os.getcwd(), "PARAMS.in")  # Current working directory
+        
+        # Read the original content
         with open(self.param, 'r') as original_file:
             original_content = original_file.read()
+        
+        # Modify the content if needed
+        if self.modified_config:
+            for key, value in self.modified_config.items():
+                pattern = rf"(--{key}\s+)\S+"
+                original_content = re.sub(pattern, rf"\1{value}", original_content)
+        
+        # Write to both output paths
+        for output_path in [scarab_output_path, local_output_path]:
+            with open(output_path, 'w') as modified_file:
+                modified_file.write(original_content)
 
-        with open(output_path, 'w') as modified_file:
-            if self.modified_config:
-                for key, value in self.modified_config.items():
-                    pattern = rf"(--{key}\s+)\S+"
-                    original_content = re.sub(pattern, rf"\1{value}", original_content)
-
-            modified_file.write(original_content)
-
-        print(f"Configuration file written to {output_path}")
+        #print(f"Configuration file written to {output_path}")
 
     def prepare_execution(self, executor, policy_MM, policy_Cache,trace_folder):
         for trace_file in os.listdir(trace_folder):

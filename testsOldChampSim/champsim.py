@@ -6,11 +6,21 @@ from concurrent.futures import ThreadPoolExecutor
 import threading
 import time
 import sys
+from dataclasses import dataclass
+import re 
+
+@dataclass
+class CacheConfig:
+    sets: int
+    ways: int
+    latency: int
 
 class ChampSimRunner:
     def __init__(self, champ_sim_path, trace_dir, config_file, output_dir, 
                  policies, prefetchs, branchs, threads, 
-                 warmup_instructions=None, simulation_instructions=None):
+                 warmup_instructions=None, simulation_instructions=None,
+                 L1I_Config=None, L1D_Config=None, L2_Config=None,
+                 LLC_Config=None):
         self.champ_sim_path = champ_sim_path
         self.trace_dir = trace_dir
         self.config_file = config_file
@@ -29,6 +39,11 @@ class ChampSimRunner:
         self.modified_config = None  # Holds the updated configuration parameter
         self.json_config_name = None
         self.json_directory = 'json_files/'
+        self.L1I_Config = L1I_Config 
+        self.L1D_Config = L1D_Config
+        self.L2_Config = L2_Config
+        self.LLC_Config = LLC_Config
+        self.Samples = list(zip(L1I_Config, L1D_Config, L2_Config, LLC_Config))
 
     def download_traces(self, trace_urls):
         if not os.path.exists(self.trace_dir):
@@ -52,30 +67,17 @@ class ChampSimRunner:
     def modify_replacement_policy(self, policy):
         time.sleep(2)
         self.S1_replacement.acquire()
-        with open(self.config_file, 'r') as file:
-            config = json.load(file)
-        config['LLC']['replacement'] = policy
+        self.modified_config['LLC']['replacement'] = policy
 
-        self.modified_config = config  
-        
     def modify_prefetcher(self,prefetch):
         time.sleep(2)
         self.S2_replacement.acquire()
-
-        #self.modified_config['L1I']['prefetcher'] = prefetch
-        #self.modified_config['L1D']['prefetcher'] = prefetch
-        #self.modified_config['L2C']['prefetcher'] = prefetch
         self.modified_config['LLC']['prefetcher'] = prefetch
-        
-
-       # self.modified_config = config  
         
     def modify_branch(self,branch):
         time.sleep(2)
         self.S3_replacement.acquire()
         self.modified_config['ooo_cpu'][0]['branch_predictor'] = branch
-
-       # self.modified_config = config  
     
     def modify_name_file(self,policy,prefetch,branch):
         updated_config = self.modified_config.copy()
@@ -115,7 +117,7 @@ class ChampSimRunner:
                                                                       prefetch):
         trace_name = os.path.splitext(trace_file)[0]
         output_file = os.path.join(self.output_dir, 
-                        f"{trace_name}_pol:{policy}_bra:{branch}_pre:{prefetch}_output.txt")
+            f"{trace_name}_pol:{policy}_bra:{branch}_pre:{prefetch}_output.txt")
 
         bin = 'bin/' + self.config_bin_name
 
@@ -152,29 +154,118 @@ class ChampSimRunner:
                 executor.submit(self.exec_single_trace, trace_file, trace_path, 
                                                                 policy, branch,
                                                                 prefetch )
+    def modify_size_cache(self, L1I, L1D, L2, LLC):
+        with open(self.config_file, 'r') as file:
+            config = json.load(file)
 
+        config['L1I']['sets'] = L1I.sets
+        config['L1I']['ways'] = L1I.ways
+        config['L1I']['latency'] = L1I.latency
+
+        config['L1D']['sets'] = L1D.sets
+        config['L1D']['ways'] = L1D.ways
+        config['L1D']['latency'] = L1D.latency
+
+        config['L2C']['sets'] = L2.sets
+        config['L2C']['ways'] = L2.ways
+        config['L2C']['latency'] = L2.latency
+
+        config['LLC']['sets'] = LLC.sets
+        config['LLC']['ways'] = LLC.ways
+        config['LLC']['latency'] = LLC.latency
+
+        self.modified_config = config  
+        
+    def modify_hawkeye_algorithm(self, LLC):
+            # Construct the file path
+        file_path = os.path.join(self.champ_sim_path, 'replacement', 'hawkeye', 'hawkeye_algorithm.cc')
+
+        # Check if file exists
+        if not os.path.isfile(file_path):
+            raise FileNotFoundError(f"File not found: {file_path}")
+
+        # Read the file content
+        with open(file_path, 'r') as file:
+            content = file.read()
+
+        # Replace the value for LLC_SETS (2048)
+        sets_pattern = r"#define\s+LLC_SETS\s+NUM_CORE\*2048"
+        sets_replacement = f"#define LLC_SETS NUM_CORE*{LLC.sets}"
+        content = re.sub(sets_pattern, sets_replacement, content)
+
+        # Replace the value for LLC_WAYS (16)
+        ways_pattern = r"#define\s+LLC_WAYS\s+16"
+        ways_replacement = f"#define LLC_WAYS {LLC.ways}"
+        content = re.sub(ways_pattern, ways_replacement, content)
+
+        # Write the updated content back to the file
+        with open(file_path, 'w') as file:
+            file.write(content)
+            
+    def modify_mockingjay(self, LLC):
+            # Construct the file path
+        file_path = os.path.join(self.champ_sim_path, 'replacement', 'mockingjay', 'mockingjay.cc')
+
+        # Check if file exists
+        if not os.path.isfile(file_path):
+            raise FileNotFoundError(f"File not found: {file_path}")
+
+        # Read the file content
+        with open(file_path, 'r') as file:
+            content = file.read()
+
+        # Replace the value for LLC_SET
+        set_pattern = r"#define\s+LLC_SET\s+\d+"
+        set_replacement = f"#define LLC_SET {LLC.sets}"
+        content = re.sub(set_pattern, set_replacement, content)
+
+        # Replace the value for LLC_WAY
+        way_pattern = r"#define\s+LLC_WAY\s+\d+"
+        way_replacement = f"#define LLC_WAY {LLC.ways}"
+        content = re.sub(way_pattern, way_replacement, content)
+
+        # Write the updated content back to the file
+        with open(file_path, 'w') as file:
+            file.write(content)
+
+    
     def execute_all_policies(self, trace_urls):
         if not os.path.exists(self.output_dir):
             os.makedirs(self.output_dir)
         
-        #self.download_traces(trace_urls)
+        self.download_traces(trace_urls)
         with ThreadPoolExecutor(max_workers=self.threads) as executor:
-            if len(self.policies) != 0:
-                for policy in self.policies:
-                    if len(self.prefetchs) != 0:
-                        for prefetch in self.prefetchs:
-                            if len(self.branchs) != 0:
-                                for branch in self.branchs:
-                                    self.modify_replacement_policy(policy)
-                                    self.modify_prefetcher(prefetch)
-                                    self.modify_branch(branch)
-                                    self.modify_name_file(policy,prefetch,
+            for index, sample in enumerate(self.Samples, start=1):
+                L1I, L1D, L2, LLC = sample
+                
+                sample_folder = os.path.join(self.output_dir, f"Sample{index}")
+                self.output_dir = str(sample_folder)
+                if not os.path.exists(sample_folder):
+                    os.makedirs(sample_folder)
+                
+                self.modify_size_cache(L1I, L1D, L2, LLC)
+                self.modify_hawkeye_algorithm(LLC)  
+                self.modify_mockingjay(LLC)
+                
+                if len(self.policies) != 0:
+                    for policy in self.policies:
+                        if len(self.prefetchs) != 0:
+                            for prefetch in self.prefetchs:
+                                if len(self.branchs) != 0:
+                                    for branch in self.branchs:
+                                        self.modify_replacement_policy(policy)
+                                        self.modify_prefetcher(prefetch)
+                                        self.modify_branch(branch)
+                                        self.modify_name_file(policy, prefetch, 
                                                                          branch)
-                                    self.write_file(self.config_file)
-                                    self.prepare_execution(executor, policy,
+                                        
+                                        self.write_file(self.config_file)
+                                        
+                                        self.prepare_execution(executor, policy, 
                                                                branch, prefetch)
-            else:
-                self.prepare_execution(executor, None)
+                else:
+                    self.prepare_execution(executor, None)
+
 
 
 def main():
@@ -204,24 +295,57 @@ def main():
 
     trace_urls = [
         "https://dpc3.compas.cs.stonybrook.edu/champsim-traces/speccpu/400.perlbench-41B.champsimtrace.xz",
-        "https://dpc3.compas.cs.stonybrook.edu/champsim-traces/speccpu/401.bzip2-226B.champsimtrace.xz",
-        "https://dpc3.compas.cs.stonybrook.edu/champsim-traces/speccpu/401.bzip2-277B.champsimtrace.xz",
-        "https://dpc3.compas.cs.stonybrook.edu/champsim-traces/speccpu/401.bzip2-7B.champsimtrace.xz",
+        #"https://dpc3.compas.cs.stonybrook.edu/champsim-traces/speccpu/401.bzip2-226B.champsimtrace.xz",
+        #"https://dpc3.compas.cs.stonybrook.edu/champsim-traces/speccpu/401.bzip2-277B.champsimtrace.xz",
+        #"https://dpc3.compas.cs.stonybrook.edu/champsim-traces/speccpu/401.bzip2-7B.champsimtrace.xz",
         "https://dpc3.compas.cs.stonybrook.edu/champsim-traces/speccpu/400.perlbench-50B.champsimtrace.xz",
         "https://dpc3.compas.cs.stonybrook.edu/champsim-traces/speccpu/403.gcc-16B.champsimtrace.xz",
-        "https://dpc3.compas.cs.stonybrook.edu/champsim-traces/speccpu/401.bzip2-38B.champsimtrace.xz"
+        #"https://dpc3.compas.cs.stonybrook.edu/champsim-traces/speccpu/401.bzip2-38B.champsimtrace.xz"
     ]
-    # bip, 
     
-    policies = ["bip","hawkeye","fifo","emissary","pcn","rlr","drrip","lru","ship","srrip" ]
+    policies = ["bip","hawkeye","fifo","emissary","pcn","rlr","drrip","lru",
+                                              "ship","srrip","mockingjay","lfu"]
+    
     prefetchs = ["va_ampm_lite","spp_dev","next_line","ip_stride","no"]
 
     branchs = ["bimodal", "gshare", "hashed_perceptron", "perceptron","tage"]
     
+    L1I_config = [  CacheConfig(64,8,4),
+                    CacheConfig(64,8,4),
+                    CacheConfig(64,8,4),
+                    #CacheConfig(64,8,4),
+                    #CacheConfig(64,8,4),
+                 ]
+    
+    L1D_config = [  CacheConfig(64,8,4),
+                    CacheConfig(64,12,5),
+                    CacheConfig(64,8,4),
+                    #CacheConfig(64,8,4),
+                    #CacheConfig(64,12,4),
+                 ]
+    
+    L2_config = [   CacheConfig(512,8,8),
+                    CacheConfig(820,8,8),
+                    CacheConfig(512,8,8),
+                    #CacheConfig(512,8,8),
+                    #CacheConfig(1024,8,15),
+                 ]
+    
+    LLC_Config = [  CacheConfig(2048,16,20),
+                    CacheConfig(2048,16,22),
+                    CacheConfig(4096,16,21),
+                    #CacheConfig(8192,16,22),
+                    #CacheConfig(2048,16,45),
+                 ]
+    
+
+    
+    
     champ_sim_runner = ChampSimRunner(champ_sim_path, trace_dir, config_file, 
                                       output_dir, policies, prefetchs, branchs,
                                       threads, warmup_instructions, 
-                                      simulation_instructions)
+                                      simulation_instructions, L1I_config, 
+                                      L1D_config, L2_config, LLC_Config)
     
     champ_sim_runner.execute_all_policies(trace_urls)
 

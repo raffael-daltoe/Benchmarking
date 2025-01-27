@@ -1,5 +1,5 @@
 {
-    "executable_name": "champsim_srrip_no_tage",
+    "executable_name": "champsim_hawkeye_va_ampm_lite_bimodal",
     "block_size": 64,
     "page_size": 4096,
     "heartbeat_frequency": 10000000,
@@ -26,7 +26,7 @@
             "dispatch_latency": 1,
             "schedule_latency": 0,
             "execute_latency": 0,
-            "branch_predictor": "tage",
+            "branch_predictor": "bimodal",
             "btb": "basic_btb"
         }
     ],
@@ -132,20 +132,20 @@
     },
     "LLC": {
         "frequency": 4000,
-        "sets": 8192,
+        "sets": 2048,
         "ways": 16,
         "rq_size": 16,
         "wq_size": 16,
         "pq_size": 16,
         "mshr_size": 32,
-        "latency": 22,
+        "latency": 20,
         "max_tag_check": 1,
         "max_fill": 1,
         "prefetch_as_load": false,
         "virtual_prefetch": false,
         "prefetch_activate": "LOAD,PREFETCH",
-        "prefetcher": "no",
-        "replacement": "srrip"
+        "prefetcher": "va_ampm_lite",
+        "replacement": "hawkeye"
     },
     "physical_memory": {
         "frequency": 3200,
