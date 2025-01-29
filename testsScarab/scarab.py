@@ -23,10 +23,23 @@ class ScarabExecutor:
         self.S1_semaphore = threading.Semaphore(1)
         self.S2_semaphore = threading.Semaphore(1)
 
+        # Define cache policy mapping as a class member
+        self.cache_policy_map = {
+            "0": "REPL_TRUE_LRU",
+            "1": "REPL_RANDOM",
+            "2": "REPL_NOT_MRU",
+            "3": "REPL_ROUND_ROBIN",
+            "6": "REPL_LOW_PREF",
+            "7": "REPL_SHADOW_IDEAL"
+        }
+
     def exec_single_trace(self, trace_file, trace_path, policy_MM, policy_Cache):
+        # Use the class member to get the cache policy name
+        policy_Cache_name = self.cache_policy_map.get(policy_Cache, policy_Cache)
+
         trace_name = os.path.splitext(trace_file)[0]
         bin_dir = os.path.abspath(os.path.join(trace_path, "../../bin"))
-        trace_output_dir = os.path.join(self.output_dir, trace_name, policy_MM, policy_Cache)
+        trace_output_dir = os.path.join(self.output_dir, trace_name, policy_MM, policy_Cache_name)
         os.makedirs(trace_output_dir, exist_ok=True)
 
         command = [
@@ -34,7 +47,6 @@ class ScarabExecutor:
             "--frontend", "memtrace",
             "--fetch_off_path_ops", "0",
             f"--cbp_trace_r0={trace_path}",
-            #f"--warmup={self.warmup_instructions}",
             f"--inst_limit={self.simulation_instructions}",
             f"--memtrace_modules_log={bin_dir}",
             f"--output_dir={trace_output_dir}"
@@ -46,6 +58,7 @@ class ScarabExecutor:
         self.S2_semaphore.release()
         subprocess.run(command)
 
+
     def modify_replacement_cache(self, new_policy):
         time.sleep(2)
         self.S1_semaphore.acquire()
@@ -53,18 +66,30 @@ class ScarabExecutor:
         with open(self.param, 'r') as file:
             content = file.read()
 
-        pattern = r"(--(?:l1_cache_repl_policy|icache_repl|dcache_repl)\s+)\S+"
-        updated_content = re.sub(pattern, rf"\1{new_policy}", content)
+        # Fix each parameter individually to avoid group reference issues
+        patterns = [
+            r"--l1_cache_repl_policy\s+\S+",
+            r"--mlc_cache_repl_policy\s+\S+",
+            r"--dcache_repl\s+\S+",
+            r"--icache_repl\s+\S+"
+        ]
+        
+        updated_content = content
+        for pattern in patterns:
+            param_name = pattern.split('--')[1].split('\\')[0]
+            replacement = f"--{param_name} {new_policy}"
+            updated_content = re.sub(pattern, replacement, updated_content)
 
         with open(self.param, 'w') as file:
             file.write(updated_content)
 
         self.modified_config = {
             'l1_cache_repl_policy': new_policy,
-            'icache_repl': new_policy,
-            'dcache_repl': new_policy
+            'mlc_cache_repl_policy': new_policy,
+            'dcache_repl': new_policy,
+            'icache_repl': new_policy
         }
-
+    
     def modify_replacement_policy(self, new_policy):
         time.sleep(2)
         self.S2_semaphore.acquire()
@@ -95,15 +120,16 @@ class ScarabExecutor:
         # Modify the content if needed
         if self.modified_config:
             for key, value in self.modified_config.items():
-                pattern = rf"(--{key}\s+)\S+"
-                original_content = re.sub(pattern, rf"\1{value}", original_content)
+                # Create pattern that matches the full parameter line
+                pattern = f"--{key}\\s+\\S+"
+                replacement = f"--{key} {value}"
+                original_content = re.sub(pattern, replacement, original_content)
         
         # Write to both output paths
         for output_path in [scarab_output_path, local_output_path]:
             with open(output_path, 'w') as modified_file:
                 modified_file.write(original_content)
 
-        #print(f"Configuration file written to {output_path}")
 
     def prepare_execution(self, executor, policy_MM, policy_Cache,trace_folder):
         for trace_file in os.listdir(trace_folder):
@@ -158,10 +184,10 @@ def main():
     simulation_instructions = int(sys.argv[5]) if len(sys.argv) > 5 and is_number(sys.argv[5]) else None
     warmup = sys.argv[6]
     param = sys.argv[7]
-
+    
     policies = ["FCFS", "FRFCFS", "FRFCFS_Cap", "FRFCFS_PriorHit"]
-    policies_Cache = ["REPL_TRUE_LRU", "REPL_RANDOM", "REPL_NOT_MRU", "REPL_ROUND_ROBIN", "REPL_IDEAL", "REPL_ISO_PREF", "REPL_LOW_PREF", "REPL_SHADOW_IDEAL", "NUM_REPL", "REPL_IDEAL_STORAGE", "REPL_MLP", "REPL_PARTITION"]
-
+    
+    policies_Cache = ["0", "1", "2", "3", "6", "7"]
     scarab_executor = ScarabExecutor(scarab_path, policies, policies_Cache, threads, trace_dir, output_dir, simulation_instructions, warmup, param)
     scarab_executor.execute_all_traces()
 

@@ -1,5 +1,5 @@
 {
-    "executable_name": "champsim_hawkeye_va_ampm_lite_bimodal",
+    "executable_name": "champsim_hawkeye_ip_stride_bimodal",
     "block_size": 64,
     "page_size": 4096,
     "heartbeat_frequency": 10000000,
@@ -144,7 +144,7 @@
         "prefetch_as_load": false,
         "virtual_prefetch": false,
         "prefetch_activate": "LOAD,PREFETCH",
-        "prefetcher": "va_ampm_lite",
+        "prefetcher": "ip_stride",
         "replacement": "hawkeye"
     },
     "physical_memory": {
