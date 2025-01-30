@@ -114,11 +114,10 @@ class ChampSimRunner:
             print("No configuration changes to write.")
 
     def exec_single_trace(self, trace_file, trace_path, policy, branch, prefetch):
-        trace_name = os.path.splitext(trace_file)[0]
         temp_output_file = os.path.join(self.output_dir, 
-            f"{trace_name}_pol:{policy}_bra:{branch}_pre:{prefetch}_output.txt")
+            f"{trace_file}_pol:{policy}_bra:{branch}_pre:{prefetch}_output.txt")
         final_output_file = os.path.join(self.output_dir, 
-            f"{trace_name}_pol:{policy}_bra:{branch}_pre:{prefetch}_output_DONE.txt")
+            f"{trace_file}_pol:{policy}_bra:{branch}_pre:{prefetch}_output_DONE.txt")
 
         bin = 'bin/' + self.config_bin_name
 
@@ -135,7 +134,6 @@ class ChampSimRunner:
         self.S1_replacement.release()
         self.S2_replacement.release()
         self.S3_replacement.release()
-
         try:
             with open(temp_output_file, 'w') as outfile:
                 subprocess.run(command, stdout=outfile, stderr=outfile, check=True)
@@ -144,11 +142,9 @@ class ChampSimRunner:
             print(f"Output for {trace_file} with policy {policy} "
                 f"branch {branch} and prefetch {prefetch} "
                 f"stored in {final_output_file}")
-            print("1Realeasing Sglobal!")
             self.SGlobal.release()
         except subprocess.CalledProcessError as e:
             print(f"Error occurred while executing ChampSim for {trace_file}: {e}")
-            print("2Realeasing Sglobal!")
             self.SGlobal.release()
         
 
@@ -164,26 +160,20 @@ class ChampSimRunner:
                     clean_trace_file = trace_file[:-13]
                     clean_trace_file = os.path.splitext(clean_trace_file)[0]
                 
-                #print(f"1)S1:{self.S1_replacement._value} S2:{self.S2_replacement._value} S3:{self.S3_replacement._value}")
                     
                    # trace_name = os.path.splitext(trace_file)[0]
                 if self.verify_already_executed(policy, prefetch, branch, clean_trace_file):
                     self.S2_replacement.release()
                     self.S1_replacement.release()
                     self.S3_replacement.release()
-                    #print(f"2)S1:{self.S1_replacement._value} S2:{self.S2_replacement._value} S3:{self.S3_replacement._value}")
-                    
                     return
-                    #continue
                 else:
-                    #print(f"3)SG: {self.SGlobal._value} S1:{self.S1_replacement._value} S2:{self.S2_replacement._value} S3:{self.S3_replacement._value}")
                
                     trace_path = os.path.join(self.trace_dir, trace_file)
                     self.SGlobal.acquire()
                     # Pass the cleaned trace file without extensions
                     executor.submit(self.exec_single_trace, clean_trace_file, trace_path, 
                                     policy, branch, prefetch)
-                    #print(f"4)SG: {self.SGlobal._value} S1:{self.S1_replacement._value} S2:{self.S2_replacement._value} S3:{self.S3_replacement._value}")
                
                                                             
     def modify_size_cache(self, L1I, L1D, L2, LLC):
@@ -345,16 +335,16 @@ def main():
         #"https://dpc3.compas.cs.stonybrook.edu/champsim-traces/speccpu/401.bzip2-277B.champsimtrace.xz",
         #"https://dpc3.compas.cs.stonybrook.edu/champsim-traces/speccpu/401.bzip2-7B.champsimtrace.xz",
         "https://dpc3.compas.cs.stonybrook.edu/champsim-traces/speccpu/400.perlbench-50B.champsimtrace.xz",
-        "https://dpc3.compas.cs.stonybrook.edu/champsim-traces/speccpu/403.gcc-16B.champsimtrace.xz",
+        #"https://dpc3.compas.cs.stonybrook.edu/champsim-traces/speccpu/403.gcc-16B.champsimtrace.xz",
         #"https://dpc3.compas.cs.stonybrook.edu/champsim-traces/speccpu/401.bzip2-38B.champsimtrace.xz"
     ]
     
     policies = ["bip","hawkeye","fifo","emissary","pcn","rlr","drrip","lru",
-                                              "ship","srrip","mockingjay","lfu"]
+                                              "ship","mockingjay"]
     
-    prefetchs = ["va_ampm_lite","spp_dev","next_line","ip_stride","no"]
+    prefetchs = ["next_line","ip_stride","no"]
 
-    branchs = ["bimodal", "gshare", "hashed_perceptron", "perceptron","tage"]
+    branchs = ["bimodal", "gshare", "tage"]
     
     L1I_config = [  CacheConfig(64,8,4),
                     #CacheConfig(64,8,4),

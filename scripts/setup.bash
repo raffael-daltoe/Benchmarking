@@ -48,7 +48,7 @@ init_submodules() {
 configure_champsim() {
     echo "###############    Starting ChampSim Configuration    ###############"
     switch_gcc_version "$GCC_VERSION_11" "$GPP_VERSION_11"
-    cp -r Policies/hawkeye/lib_hawkeye tools/ChampSim
+    cp -r Policies/lib_hawkeye tools/ChampSim
     cp -r Policies/hawkeye tools/ChampSim/replacement
     cp -r Policies/bip tools/ChampSim/replacement
     cp -r Policies/emissary tools/ChampSim/replacement
