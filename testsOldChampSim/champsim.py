@@ -8,7 +8,7 @@ import time
 import sys
 from dataclasses import dataclass
 import re 
-
+count = 0
 @dataclass
 class CacheConfig:
     sets: int
@@ -26,6 +26,7 @@ class ChampSimRunner:
         self.config_file = config_file
         self.config_bin_name = 'champsim'
         self.output_dir = output_dir
+        self.output_dir_orig = output_dir
         self.policies = policies
         self.prefetchs = prefetchs
         self.branchs = branchs
@@ -149,7 +150,7 @@ class ChampSimRunner:
         
 
 
-    def prepare_execution(self, executor, policy, branch, prefetch):
+    def prepare_execution(self, executor, policy, branch, prefetch,count=0):
         for trace_file in os.listdir(self.trace_dir):
             if trace_file.endswith('.champsimtrace') or trace_file.endswith('.xz'):
                 # Remove the extensions .xz or .champsimtrace
@@ -168,13 +169,11 @@ class ChampSimRunner:
                     self.S3_replacement.release()
                     return
                 else:
-               
                     trace_path = os.path.join(self.trace_dir, trace_file)
                     self.SGlobal.acquire()
                     # Pass the cleaned trace file without extensions
                     executor.submit(self.exec_single_trace, clean_trace_file, trace_path, 
                                     policy, branch, prefetch)
-               
                                                             
     def modify_size_cache(self, L1I, L1D, L2, LLC):
         with open(self.config_file, 'r') as file:
@@ -271,14 +270,17 @@ class ChampSimRunner:
         
         self.download_traces(trace_urls)
         with ThreadPoolExecutor(max_workers=self.threads) as executor:
-            for index, sample in enumerate(self.Samples, start=1):
+            for index, sample in enumerate(self.Samples, start=4):
                 L1I, L1D, L2, LLC = sample
                 
-                sample_folder = os.path.join(self.output_dir, f"Sample{index}")
-                self.output_dir = str(sample_folder)
-                if not os.path.exists(sample_folder):
-                    os.makedirs(sample_folder)
+                sample_folder = os.path.join(self.output_dir_orig, f"Sample{index}")
                 
+                if os.path.exists( os.path.join(self.output_dir_orig, f"Sample{index}") ):
+                    self.output_dir = str(sample_folder)
+                else: 
+                    self.output_dir = str(sample_folder)
+                    os.makedirs(sample_folder)
+
                 self.modify_size_cache(L1I, L1D, L2, LLC)
                 self.modify_hawkeye_algorithm(LLC)  
                 self.modify_mockingjay(LLC)
@@ -339,40 +341,40 @@ def main():
         #"https://dpc3.compas.cs.stonybrook.edu/champsim-traces/speccpu/401.bzip2-38B.champsimtrace.xz"
     ]
     
-    policies = ["bip","hawkeye","fifo","emissary","pcn","rlr","drrip","lru",
-                                              "ship","mockingjay"]
+    policies = ["pcn"]
     
-    prefetchs = ["next_line","ip_stride","no"]
+    prefetchs = ["next_line"]
 
-    branchs = ["bimodal", "gshare", "tage"]
+    branchs = ["bimodal", "tage"]
     
-    L1I_config = [  CacheConfig(64,8,4),
-                    #CacheConfig(64,8,4),
-                    #CacheConfig(64,8,4),
-                    #CacheConfig(64,8,4),
-                    #CacheConfig(64,8,4),
-                 ]
-    
-    L1D_config = [  CacheConfig(64,8,4),
-                    #CacheConfig(64,12,5),
-                    #CacheConfig(64,8,4),
-                    #CacheConfig(64,8,4),
-                    #CacheConfig(64,12,4),
-                 ]
-    
-    L2_config = [   CacheConfig(512,8,8),
-                    #CacheConfig(820,8,8),
-                    #CacheConfig(512,8,8),
-                    #CacheConfig(512,8,8),
-                    #CacheConfig(1024,8,15),
-                 ]
-    
-    LLC_Config = [  CacheConfig(2048,16,20),
-                    #CacheConfig(2048,16,22),
-                    #CacheConfig(4096,16,21),
-                    #CacheConfig(8192,16,22),
-                    #CacheConfig(2048,16,45),
-                 ]
+    L1I_config = [
+        #CacheConfig(64, 8, 4),
+        #CacheConfig(64, 8, 4),
+        #CacheConfig(64, 8, 4),
+        CacheConfig(64, 8, 4),
+        CacheConfig(64, 8, 4),
+    ]
+    L1D_config = [
+        #CacheConfig(64, 8, 4),
+        #CacheConfig(64, 12, 5),
+        #CacheConfig(64, 8, 4),
+        CacheConfig(64, 8, 4),
+        CacheConfig(64, 12, 4),
+    ]
+    L2_config = [
+        #CacheConfig(512, 8, 8),
+        #CacheConfig(820, 8, 8),
+        #CacheConfig(512, 8, 8),
+        CacheConfig(512, 8, 8),
+        CacheConfig(1024, 8, 15),
+    ]
+    LLC_Config = [
+        #CacheConfig(2048, 16, 20),
+        #CacheConfig(2048, 16, 22),
+        #CacheConfig(4096, 16, 21),
+        CacheConfig(8192, 16, 22),
+        CacheConfig(2048, 16, 45),
+    ]
     
 
     
