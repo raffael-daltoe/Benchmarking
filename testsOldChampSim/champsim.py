@@ -210,12 +210,12 @@ class ChampSimRunner:
             content = file.read()
 
         # Replace the value for LLC_SETS (2048)
-        sets_pattern = r"#define\s+LLC_SETS\s+NUM_CORE\*2048"
+        sets_pattern = r"#define\s+LLC_SETS\s+NUM_CORE\s*\*\s*\d+"
         sets_replacement = f"#define LLC_SETS NUM_CORE*{LLC.sets}"
         content = re.sub(sets_pattern, sets_replacement, content)
 
         # Replace the value for LLC_WAYS (16)
-        ways_pattern = r"#define\s+LLC_WAYS\s+16"
+        ways_pattern = r"#define\s+LLC_WAYS\s*\s*\d+"
         ways_replacement = f"#define LLC_WAYS {LLC.ways}"
         content = re.sub(ways_pattern, ways_replacement, content)
 
@@ -270,7 +270,7 @@ class ChampSimRunner:
         
         self.download_traces(trace_urls)
         with ThreadPoolExecutor(max_workers=self.threads) as executor:
-            for index, sample in enumerate(self.Samples, start=4):
+            for index, sample in enumerate(self.Samples, start=1):
                 L1I, L1D, L2, LLC = sample
                 
                 sample_folder = os.path.join(self.output_dir_orig, f"Sample{index}")
@@ -341,39 +341,41 @@ def main():
         #"https://dpc3.compas.cs.stonybrook.edu/champsim-traces/speccpu/401.bzip2-38B.champsimtrace.xz"
     ]
     
-    policies = ["pcn"]
+    policies = ["bip","hawkeye","fifo","emissary","pcn","rlr","drrip","lru",
+                                              "ship","mockingjay"]
     
-    prefetchs = ["next_line"]
+    prefetchs = ["next_line","ip_stride","no"]
 
-    branchs = ["bimodal", "tage"]
+    branchs = ["bimodal", "gshare", "tage"]
+    
     
     L1I_config = [
-        #CacheConfig(64, 8, 4),
-        #CacheConfig(64, 8, 4),
-        #CacheConfig(64, 8, 4),
         CacheConfig(64, 8, 4),
-        CacheConfig(64, 8, 4),
+        #CacheConfig(64, 8, 4),
+        #CacheConfig(64, 8, 4),
+        #CacheConfig(64, 8, 4),
+        #CacheConfig(64, 8, 4),
     ]
     L1D_config = [
-        #CacheConfig(64, 8, 4),
+        CacheConfig(64, 8, 4),
         #CacheConfig(64, 12, 5),
         #CacheConfig(64, 8, 4),
-        CacheConfig(64, 8, 4),
-        CacheConfig(64, 12, 4),
+        #CacheConfig(64, 8, 4),
+        #CacheConfig(64, 12, 4),
     ]
     L2_config = [
-        #CacheConfig(512, 8, 8),
+        CacheConfig(512, 8, 8),
         #CacheConfig(820, 8, 8),
         #CacheConfig(512, 8, 8),
-        CacheConfig(512, 8, 8),
-        CacheConfig(1024, 8, 15),
+        #CacheConfig(512, 8, 8),
+        #CacheConfig(1024, 8, 15),
     ]
     LLC_Config = [
-        #CacheConfig(2048, 16, 20),
+        CacheConfig(2048, 16, 20),
         #CacheConfig(2048, 16, 22),
         #CacheConfig(4096, 16, 21),
-        CacheConfig(8192, 16, 22),
-        CacheConfig(2048, 16, 45),
+        #CacheConfig(8192, 16, 22),
+        #CacheConfig(2048, 16, 45),
     ]
     
 
