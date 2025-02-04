@@ -90,7 +90,7 @@ class ChampSimRunner:
     def write_file(self, file_path):
         if self.modified_config:
             with open(file_path, 'w') as file:
-                json.dump(self.modified_config, file, indent=4)
+                json.dump(self.modified_config, file, indent=5)
 
             subprocess.run(['mkdir', '-p', f"{self.json_directory}"], 
                                                         cwd=self.champ_sim_path)
@@ -351,31 +351,31 @@ def main():
     
     L1I_config = [
         CacheConfig(64, 8, 4),
-        #CacheConfig(64, 8, 4),
-        #CacheConfig(64, 8, 4),
-        #CacheConfig(64, 8, 4),
-        #CacheConfig(64, 8, 4),
+        CacheConfig(64, 8, 4),
+        CacheConfig(64, 8, 4),
+        CacheConfig(64, 8, 4),
+        CacheConfig(64, 8, 4),
     ]
     L1D_config = [
         CacheConfig(64, 8, 4),
-        #CacheConfig(64, 12, 5),
-        #CacheConfig(64, 8, 4),
-        #CacheConfig(64, 8, 4),
-        #CacheConfig(64, 12, 4),
+        CacheConfig(64, 12, 5),
+        CacheConfig(64, 8, 4),
+        CacheConfig(64, 8, 4),
+        CacheConfig(64, 12, 4),
     ]
     L2_config = [
         CacheConfig(512, 8, 8),
-        #CacheConfig(820, 8, 8),
-        #CacheConfig(512, 8, 8),
-        #CacheConfig(512, 8, 8),
-        #CacheConfig(1024, 8, 15),
+        CacheConfig(820, 8, 8),
+        CacheConfig(512, 8, 8),
+        CacheConfig(512, 8, 8),
+        CacheConfig(1024, 8, 15),
     ]
     LLC_Config = [
         CacheConfig(2048, 16, 20),
-        #CacheConfig(2048, 16, 22),
-        #CacheConfig(4096, 16, 21),
-        #CacheConfig(8192, 16, 22),
-        #CacheConfig(2048, 16, 45),
+        CacheConfig(2048, 16, 22),
+        CacheConfig(4096, 16, 21),
+        CacheConfig(8192, 16, 22),
+        CacheConfig(2048, 16, 45),
     ]
     
 
