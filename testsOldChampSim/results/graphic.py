@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 from collections import defaultdict
 
 # Define directories and file paths
-input_dir = '../sim_outputs/'
+input_dir = '../sim_outputs/Sample4'
 
 # Initialize data structure to store results
 data = defaultdict(lambda: defaultdict(lambda: defaultdict(float)))  # {trace: {policy: {branch_prefetcher: IPC value}}}
@@ -34,7 +34,7 @@ for file_name in os.listdir(input_dir):
             branch = branch_match.group(1)
 
             # Extract prefetcher
-            prefetcher_match = re.search(r"pre:(.*?)_output.txt", file_name)
+            prefetcher_match = re.search(r"pre:(.*?)_output_DONE.txt", file_name)
             if not prefetcher_match:
                 continue
             prefetcher = prefetcher_match.group(1)

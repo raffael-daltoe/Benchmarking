@@ -56,7 +56,13 @@ instructions (to pre-populate memory).
 ## Results
 
 The `graphic.py` script in the `results` folder allows you to generate 
-visualizations for various metrics collected during simulations. 
+visualizations for various metrics collected during simulations.
+Choose between the Samples inside of sim_outputs to plot, for example:
+
+    ```bash
+    input_dir = '../sim_outputs/Sample4'
+    ```
+Change `Sample4` with the other Sample you have.
 
 ### Adding Metrics
 
