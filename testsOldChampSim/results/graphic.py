@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 from collections import defaultdict
 
 # Define directories and file paths
-input_dir = '../sim_outputs/Sample4'
+input_dir = '../sim_outputs/Sample1'
 
 # Initialize data structure to store results
 data = defaultdict(lambda: defaultdict(lambda: defaultdict(float)))  # {trace: {policy: {branch_prefetcher: IPC value}}}

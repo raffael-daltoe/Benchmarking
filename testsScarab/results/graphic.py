@@ -3,28 +3,36 @@ import re
 import matplotlib.pyplot as plt
 import numpy as np
 
-# Base directory where all trace directories are located
+# Base directory
 base_dir = '../simulations/'
 
-# Algorithms to search for within each trace directory
+# Main memory algorithms
 algorithms = ['FCFS', 'FRFCFS', 'FRFCFS_Cap', 'FRFCFS_PriorHit']
 
-# Output files to look for within each algorithm directory
+# Cache replacement policies
+cache_replacements = [
+    'REPL_LOW_PREF','REPL_NOT_MRU','REPL_RANDOM','REPL_ROUND_ROBIN',
+    'REPL_SHADOW_IDEAL','REPL_TRUE_LRU'
+]
+
+# Output files
 output_files = [
-    'bp.stat.0.out', 'fetch.stat.0.out', 'power.stat.0.out', 'core.stat.0.out', 
+    'bp.stat.0.out', 'fetch.stat.0.out', 'power.stat.0.out', 'core.stat.0.out',
     'inst.stat.0.out','memory.stat.0.out', 'pref.stat.0.out','stream.stat.0.out'
 ]
 
-# Metrics to collect from each file
-metrics_to_collect = ['IPC', 'L1_HIT_ALL', 'L1_MISS_ALL',
-                      'POWER_ICACHE_ACCESS'
-                      ]
+# Metrics
+metrics_to_collect = [
+    'IPC',
+    'L1_HIT_ALL',
+    'L1_MISS_ALL',
+    'POWER_ICACHE_ACCESS'
+]
 
-# Dictionary to store metrics data organized by trace, algorithm, and metric
 trace_metrics = {}
 
-# Function to extract general and hit/miss metrics from file content
 def extract_metrics(file_content):
+    """Extract the specified metrics from the file content."""
     metrics = {}
     for metric in metrics_to_collect:
         match = re.search(rf'{metric}:?\s*([\d.]+)', file_content)
@@ -32,141 +40,151 @@ def extract_metrics(file_content):
             metrics[metric] = float(match.group(1))
     return metrics
 
-# Traverse through each trace directory and extract metrics for each algorithm
+#
+# Data Gathering
+#
 for trace_dir in os.listdir(base_dir):
     trace_path = os.path.join(base_dir, trace_dir)
-    
-    # Ensure that we're looking at a directory
     if not os.path.isdir(trace_path):
         continue
-    
-    # Initialize dictionary for each trace
+
     trace_metrics[trace_dir] = {}
-    
-    # Traverse each algorithm directory within the trace directory
+
     for algo in algorithms:
         algo_path = os.path.join(trace_path, algo)
-        
-        # Ensure that we're looking at a directory
         if not os.path.isdir(algo_path):
             continue
-        
-        # Initialize dictionary for each algorithm within the trace
-        trace_metrics[trace_dir][algo] = {}
-        
-        # Process each output file within the algorithm directory
-        for output_file in output_files:
-            file_path = os.path.join(algo_path, output_file)
-            
-            # Ensure the file exists before reading
-            if os.path.isfile(file_path):
-                with open(file_path, 'r') as file:
-                    file_content = file.read()
-                    trace_metrics[trace_dir][algo].update(extract_metrics(file_content))
 
-# Simplify trace names for display
-trace_names = [trace.split('.')[1] for trace in trace_metrics.keys()]  # Extract the core part of each trace name
-x = np.arange(len(trace_names))  # Position of each trace group
-bar_width = 0.18  # Width of each bar within a group
+        for repl in cache_replacements:
+            algo_repl_key = f"{algo} | {repl}"
+            algo_repl_path = os.path.join(algo_path, repl)
 
-# Plot each metric as a grouped bar chart for each algorithm
-for metric in metrics_to_collect:
-    plt.figure(figsize=(12, 8))
-    
-    use_log_scale = metric in ['L1_HIT_ALL', 'L1_MISS_ALL']
+            if not os.path.isdir(algo_repl_path):
+                continue
 
-    # Use a logarithmic scale for specified metrics
-    if use_log_scale:
-        plt.yscale('log')
+            trace_metrics[trace_dir][algo_repl_key] = {}
 
-    if metric == 'L1_HIT_ALL':
-        total_hit_scale = 5
-        position_legend = "upper left"
-    elif metric == 'L1_MISS_ALL':
-        total_hit_scale = 3
-        position_legend = "upper left"
-    else:
-        total_hit_scale = 1.3
-        position_legend = "upper left"
+            for output_file in output_files:
+                file_path = os.path.join(algo_repl_path, output_file)
+                if os.path.isfile(file_path):
+                    with open(file_path, 'r') as f:
+                        file_content = f.read()
+                    trace_metrics[trace_dir][algo_repl_key].update(
+                        extract_metrics(file_content)
+                    )
 
-    # Calculate max and min values to set y-axis limits
-    all_values = [trace_metrics[trace][algo].get(metric, 0) for trace in trace_metrics for algo in algorithms]
-    y_min,x_min = min(all_values) * 0.95, max(all_values) * total_hit_scale
+#
+# Plotting
+#
+for trace_dir, combo_dict in trace_metrics.items():
+    for metric in metrics_to_collect:
 
-    # Plot bars for each algorithm
-    for i, algo in enumerate(algorithms):
-        y = [trace_metrics[trace][algo].get(metric, 0) for trace in trace_metrics.keys()]
-        plt.bar(x + i * bar_width, y, width=bar_width, label=algo)
-        
-        # Annotate each bar with its value
-        for j, val in enumerate(y):
-            annotation_color = 'black'
-            font_weight = 'normal'
-            font_size = 16
+        combos = list(combo_dict.keys())
+        if not combos:
+            continue
 
-            # Highlight conditions based on metrics
-            if metric == 'IPC':
-                # Highlight the best IPC in red with bold font
-                max_algo = max(trace_metrics[list(trace_metrics.keys())[j]], key=lambda algo: trace_metrics[list(trace_metrics.keys())[j]][algo].get(metric, 0))
-                if algo == max_algo:
-                    annotation_color = 'limegreen'
-                    font_weight = 'bold'
-                    font_size = 17
-            elif metric == 'L1_HIT_ALL':
-                # Highlight the algorithm with the maximum hit rate
-                max_hit_algo = max(trace_metrics[list(trace_metrics.keys())[j]], key=lambda algo: trace_metrics[list(trace_metrics.keys())[j]][algo].get(metric, 0))
-                if algo == max_hit_algo:
-                    annotation_color = 'limegreen'
-                    font_weight = 'bold'
-                    font_size = 17
-            elif metric == 'L1_MISS_ALL':
-                # Highlight the algorithm with the minimum miss rate
-                min_miss_algo = min(trace_metrics[list(trace_metrics.keys())[j]], key=lambda algo: trace_metrics[list(trace_metrics.keys())[j]][algo].get(metric, float('inf')))
-                if algo == min_miss_algo:
-                    annotation_color = 'red'
-                    font_weight = 'bold'
-                    font_size = 17
-            elif metric == 'POWER_ICACHE_ACCESS':
-                min_power_algo = min(trace_metrics[list(trace_metrics.keys())[j]], key=lambda algo: trace_metrics[list(trace_metrics.keys())[j]][algo].get(metric, float('inf')))
-                if algo == min_power_algo:
-                    annotation_color = 'limegreen'
-                    font_weight = 'bold'
-                    font_size = 17
+        # Sort combos by ascending metric value
+        combos_sorted = sorted(combos, key=lambda c: combo_dict[c].get(metric, 0))
+        y_values_sorted = [combo_dict[c].get(metric, 0) for c in combos_sorted]
 
-            # Format large numbers with 'K', 'M', or 'B' notation for readability
-            if val >= 1e9:
-                display_val = f'{val/1e9:.2f}B'  # Convert to billions
-            elif val >= 1e6:
-                display_val = f'{val/1e6:.2f}M'  # Convert to millions
-            elif val >= 1e3:
-                display_val = f'{val/1e3:.2f}K'  # Convert to thousands
+        if len(y_values_sorted) == 0:
+            continue
+
+        plt.figure(figsize=(14, 8))
+        x_positions = np.arange(len(combos_sorted))
+
+        # Colors
+        cm = plt.cm.get_cmap('tab20')
+        bar_colors = [cm(i % 20 / 20.0) for i in range(len(x_positions))]
+
+        # Plot initial bars
+        bars = plt.bar(x_positions, y_values_sorted, color=bar_colors)
+
+        #
+        # Pass 1: Compress bars above threshold
+        #
+        max_val = max(y_values_sorted)
+        threshold_fraction = 0.90  # Adjust: 90% of max
+        compression_factor = 0.5   # portion above threshold is shrunk by 50%
+
+        threshold = threshold_fraction * max_val
+
+        for bar in bars:
+            original_height = bar.get_height()
+            if original_height > threshold:
+                portion_above = original_height - threshold
+                compressed_portion = compression_factor * portion_above
+                new_height = threshold + compressed_portion
+                bar.set_height(new_height)
+
+        #
+        # Identify best/worst bar index for highlight
+        #
+        if metric == 'IPC':
+            best_idx = np.argmax(y_values_sorted)  # highest is best
+        elif metric == 'L1_HIT_ALL':
+            best_idx = np.argmax(y_values_sorted)
+        elif metric == 'L1_MISS_ALL':
+            best_idx = np.argmin(y_values_sorted)
+        elif metric == 'POWER_ICACHE_ACCESS':
+            best_idx = np.argmin(y_values_sorted)
+        else:
+            best_idx = None
+
+        #
+        # Pass 2: Label each bar at its compressed height
+        #
+        for i, bar in enumerate(bars):
+            real_val = y_values_sorted[i]     # The *true* metric
+            comp_height = bar.get_height()    # The *compressed* bar height
+
+            # Format large numbers
+            if real_val >= 1e9:
+                disp_val = f'{real_val / 1e9:.2f}B'
+            elif real_val >= 1e6:
+                disp_val = f'{real_val / 1e6:.2f}M'
+            elif real_val >= 1e3:
+                disp_val = f'{real_val / 1e3:.2f}K'
             else:
-                display_val = f'{val:.2f}'  # Use regular two-decimal format
-            
-            # Adjust the text position slightly above each bar's top and shift it to the right
-            current_scale = plt.gca().get_yscale()  # Get the current y-axis scale
-            offset_y = val * 0.01 if current_scale == 'log' else 0.005 * max(y)  # Dynamically set y offset based on scale
-            offset_x = 0.05  # Shift text slightly to the right
+                disp_val = f'{real_val:.2f}'
 
-            plt.text(x[j] + i * bar_width + offset_x, val + offset_y, display_val, 
-                    ha='center', fontsize=font_size, color=annotation_color, fontweight=font_weight, rotation=55)
+            annotation_color = 'black'
+            if best_idx is not None and i == best_idx:
+                if metric in ['IPC', 'L1_HIT_ALL', 'POWER_ICACHE_ACCESS']:
+                    annotation_color = 'limegreen'
+                elif metric == 'L1_MISS_ALL':
+                    annotation_color = 'red'
 
+            # We offset from the *compressed* bar height so the text sits just above it
+            offset = 0.01 * max_val
+            plt.text(
+                x_positions[i],
+                comp_height + offset,
+                disp_val,
+                ha='center',
+                rotation=55,
+                fontsize=10,
+                fontweight='bold',
+                color=annotation_color
+            )
 
-    # Set labels, title, and limits
-    plt.xticks(x + bar_width * (len(algorithms) - 1) / 2, trace_names, rotation=25, fontsize=14)
-    plt.ylim(y_min, x_min)
-    plt.xlim(-0.15, len(trace_names) - 0.3)
-    plt.xlabel('Traces', fontsize=16)
-    plt.ylabel(metric, fontsize=16)
-    plt.title(f'{metric} Comparison Across Traces and Main Memory Algorithms', fontsize=18)
-    plt.legend(
-        title='Main Memory Algorithms',
-        fontsize=20,           # Increase the font size of legend text
-        title_fontsize=22,      # Increase the font size of the legend title
-        borderpad=0.5,          # Increase padding inside the legend box
-        labelspacing=0.5,       # Increase the spacing between entries
-        handletextpad=0.5,      # Increase space between marker and text
-        loc=position_legend,       # Adjust location if needed
-    )
-    plt.tight_layout()
-    plt.show()
+        #
+        # X-axis
+        #
+        plt.xticks(x_positions, combos_sorted, rotation=45, ha='right', fontsize=9)
+
+        # Title and axes
+        try:
+            trace_name = trace_dir.split('.')[1]
+        except IndexError:
+            trace_name = trace_dir
+        plt.title(f'Trace: {trace_name} - {metric} (Ascending)', fontsize=16)
+        plt.xlabel('Algorithm | Replacement', fontsize=14)
+        plt.ylabel(metric, fontsize=14)
+
+        if metric in ['L1_HIT_ALL', 'L1_MISS_ALL']:
+            plt.yscale('log')
+
+        plt.legend([])
+        plt.tight_layout()
+        plt.show()
