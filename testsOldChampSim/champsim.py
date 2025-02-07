@@ -8,7 +8,7 @@ import time
 import sys
 from dataclasses import dataclass
 import re 
-count = 0
+
 @dataclass
 class CacheConfig:
     sets: int
@@ -150,7 +150,7 @@ class ChampSimRunner:
         
 
 
-    def prepare_execution(self, executor, policy, branch, prefetch,count=0):
+    def prepare_execution(self, executor, policy, branch, prefetch):
         for trace_file in os.listdir(self.trace_dir):
             if trace_file.endswith('.champsimtrace') or trace_file.endswith('.xz'):
                 # Remove the extensions .xz or .champsimtrace
