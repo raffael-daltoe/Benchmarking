@@ -6,7 +6,7 @@ from my_system import create_system
 # Create the system
 system = create_system()
 
-#system.cpu.max_insts_any_thread = 6000
+system.cpu.max_insts_any_thread = 6000
 
 # Create the process
 process = Process()

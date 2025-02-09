@@ -1,25 +1,10 @@
-# my_system.py
-from m5.objects import *
-from m5.util import *
-from m5.objects.DVFSHandler import *
-from m5.objects.SimpleMemory import *
-from m5.objects.Workload import StubWorkload
-from m5.params import *
-from m5.proxy import *
-from m5.SimObject import *
 import m5
 from m5.objects import *
 m5.util.addToPath("../")
+
 from cache import *
-from common import SimpleOpts
 
 class MySystem(System):
-    type = 'System'
-    cxx_header = "system/system.hh"
-    cxx_class = "gem5::System"
-    
-    system_port = RequestPort("System port")
-    
     def __init__(self):
         super(MySystem, self).__init__()
         
@@ -57,7 +42,7 @@ class MySystem(System):
         self.cpu.numPhysCCRegs = 256
         
         # Branch Predictor
-        self.cpu.branchPred = TAGE() 
+        self.cpu.branchPred = GshareBP() 
         
         # Memory system
         self.membus = SystemXBar()
@@ -83,7 +68,11 @@ class MySystem(System):
         # L3 Cache
         self.l3cache = L3Cache()
         
-        # Configure cache parameters
+        self._setup_size_cache()
+        self._setup_tlbs()
+        
+    def _setup_size_cache(self):
+        
         self.cpu.icache.size = '32kB'
         self.cpu.icache.mshrs = 4
         self.cpu.icache.assoc = 8
@@ -111,10 +100,8 @@ class MySystem(System):
         self.l3cache.tag_latency = 10
         self.l3cache.data_latency = 10
         self.l3cache.response_latency = 10
-        self.l3cache.replacement_policy = BRRIPRP()
+        self.l3cache.replacement_policy = BIPRP()
         
-        self._setup_tlbs()
-    
     def _setup_tlbs(self):
         self.cpu.itlb = X86TLB()
         self.cpu.dtlb = X86TLB()
@@ -126,7 +113,7 @@ class MySystem(System):
     def _setup_memory(self):
         self.mem_ctrl = MemCtrl()
         self.mem_ctrl.dram = DDR4_2400_8x8()
-        self.mem_ctrl.dram.tRP = '40ns'       # From JSON
+        self.mem_ctrl.dram.tRP = '40ns'      
         self.mem_ctrl.dram.tRCD = '40ns'
         self.mem_ctrl.dram.tCS = '40ns'
         self.mem_ctrl.dram.ranks_per_channel = 1
@@ -136,7 +123,7 @@ class MySystem(System):
     def _connect_system(self):
         # Create buses
         self.l2bus = L2XBar()
-        self.l3bus = L3XBar()
+        self.l3bus = L2XBar()
         
         # Connect L1 caches
         self.cpu.icache.connectCPU(self.cpu)

@@ -57,8 +57,10 @@ configure_champsim() {
     cp -r Policies/mockingjay tools/ChampSim/replacement
     cp -r Policies/pcn tools/ChampSim/replacement
     cp -r Policies/rlr tools/ChampSim/replacement
-    cp -r Branch/tage tools/ChampSim/branch
+    cp -r Policies/random tools/ChampSim/replacement
 
+    cp -r Branch/tage tools/ChampSim/branch
+    
     cd tools/ChampSim
     ./vcpkg/bootstrap-vcpkg.sh
     ./vcpkg/vcpkg install
@@ -92,7 +94,11 @@ configure_scarab() {
 configure_gem5() {
     echo "###############    Starting GEM5 Configuration    ###############"
     switch_gcc_version "$GCC_VERSION_11" "$GPP_VERSION_11"
+    
+    cp -r ../Branch/gshare-gem5/* tools/gem5/src/cpu/pred/ 
+
     cp ../Fixldgem5/ld-linux.so.3 /lib/
+
     cd tools/gem5
     echo | scons build/ARM/gem5.opt -j"${nproc}"  # Skip the prompt
     cd ..

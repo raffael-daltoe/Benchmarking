@@ -159,7 +159,52 @@ def plot_eachtrace():
         # Show the plot for this trace
         plt.show()
 
+def plot_branch_prefetcher_across_policies():
+    for trace, policies in data.items():
+        # Organize data by Branch_Prefetcher
+        branch_prefetchers = defaultdict(dict)
+        
+        for policy, branch_prefetcher_dict in policies.items():
+            for branch_prefetcher, ipc in branch_prefetcher_dict.items():
+                branch_prefetchers[branch_prefetcher][policy] = ipc
+        
+        # Create plots for each Branch_Prefetcher
+        for branch_prefetcher, ipc_values in branch_prefetchers.items():
+            policies = list(ipc_values.keys())
+            values = list(ipc_values.values())
+            
+            # Sort policies by IPC values
+            sorted_items = sorted(zip(policies, values), key=lambda x: x[1])
+            sorted_policies = [item[0] for item in sorted_items]
+            sorted_values = [item[1] for item in sorted_items]
 
-plot_eachtrace()
+            # Create the bar graph
+            plt.figure(figsize=(14, 8))
+            bars = plt.bar(sorted_policies, sorted_values, color=plt.cm.tab10.colors[:len(sorted_policies)])
+            
+            # Highlight the highest IPC in green
+            max_value = max(sorted_values)
+            for bar, value in zip(bars, sorted_values):
+                color = 'green' if value == max_value else 'black'
+                plt.text(
+                    bar.get_x() + bar.get_width() / 2.0, value,
+                    f'{value:.2f}',
+                    ha='center', va='bottom', fontsize=10, color=color
+                )
+
+            plt.xlabel('Policy', fontsize=14)
+            plt.ylabel('IPC', fontsize=14)
+            plt.title(f'Trace: {trace} | Branch_Prefetcher: {branch_prefetcher}', fontsize=16)
+            plt.xticks(rotation=45, ha='right')
+            plt.tight_layout()
+            
+            # Show the plot
+            plt.show()
+
+
+# Call the function to generate the plots
+plot_branch_prefetcher_across_policies()
+
+#plot_eachtrace()
 #plot_everyone()
 #plot_10bestIPC()
