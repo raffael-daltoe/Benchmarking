@@ -1,6 +1,6 @@
 import m5
 from m5.objects import *
-m5.util.addToPath("../")
+m5.util.addToPath("../../../../../")
 
 from cache import *
 
@@ -42,7 +42,7 @@ class MySystem(System):
         self.cpu.numPhysCCRegs = 256
         
         # Branch Predictor
-        self.cpu.branchPred = GshareBP() 
+        self.cpu.branchPred = BiModeBP() 
         
         # Memory system
         self.membus = SystemXBar()
@@ -73,19 +73,21 @@ class MySystem(System):
         
     def _setup_size_cache(self):
         
-        self.cpu.icache.size = '32kB'
+        self.cpu.icache.size = '256kB'
         self.cpu.icache.mshrs = 4
         self.cpu.icache.assoc = 8
         self.cpu.icache.tag_latency = 1
         self.cpu.icache.data_latency = 1
         self.cpu.icache.response_latency = 1
+        #self.cpu.icache.prefetcher = NULL
         
-        self.cpu.dcache.size = '32kB'
+        self.cpu.dcache.size = '256kB'
         self.cpu.dcache.assoc = 8 
         self.cpu.dcache.mshrs = 8
         self.cpu.dcache.tag_latency = 1
         self.cpu.dcache.data_latency = 1
         self.cpu.dcache.response_latency = 1
+        #self.cpu.dcache.prefetcher = NULL
         
         self.l2cache.size = '256kB'
         self.l2cache.assoc = 8
@@ -93,6 +95,7 @@ class MySystem(System):
         self.l2cache.tag_latency = 10
         self.l2cache.data_latency = 10
         self.l2cache.response_latency = 10
+        #self.l2cache.prefetcher = NULL
 
         self.l3cache.size = '2MB'
         self.l3cache.assoc = 16
@@ -100,8 +103,9 @@ class MySystem(System):
         self.l3cache.tag_latency = 10
         self.l3cache.data_latency = 10
         self.l3cache.response_latency = 10
-        self.l3cache.replacement_policy = BIPRP()
-        
+        self.l3cache.replacement_policy = BRRIPRP()
+        #self.l3cache.prefetcher = TaggedPrefetcher()
+
     def _setup_tlbs(self):
         self.cpu.itlb = X86TLB()
         self.cpu.dtlb = X86TLB()
