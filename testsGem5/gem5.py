@@ -339,14 +339,14 @@ class GEM5Runner:
 
         with ThreadPoolExecutor(max_workers=self.threads) as executor:
             for binary in os.listdir(self.bin_dir):
-                for index, sample in enumerate(self.Samples, start=5):
+                for index, sample in enumerate(self.Samples, start=1):
                     L1I, L1D, L2C, L3 = sample
 
                     # Each sample set has its own folder
-                    sample_folder = os.path.join(self.output_dir_orig, f"Sample{index}")
-                    if not os.path.exists(sample_folder):
-                        os.makedirs(sample_folder)
-                    self.output_dir = sample_folder
+                    #sample_folder = os.path.join(self.output_dir_orig, f"Sample{index}")
+                    #if not os.path.exists(sample_folder):
+                    #    os.makedirs(sample_folder)
+                    #self.output_dir = sample_folder
 
                     # Modify cache sizes
                     self.modify_size_cache(L1I, L1D, L2C, L3)
@@ -424,30 +424,30 @@ def main():
     # ----------------------------------------------------------
     # Example cache configurations
     L1I_config = [
+        CacheConfig(64, 8, 4),
         #CacheConfig(64, 8, 4),
-        #CacheConfig(64, 8, 4),
-        #CacheConfig(64, 8, 4),
+        CacheConfig(64, 8, 4),
         CacheConfig(64, 8, 4),
         #CacheConfig(64, 8, 4),
     ]
     L1D_config = [
-        #CacheConfig(64, 8, 4),
-        #CacheConfig(64, 12, 5),
-        #CacheConfig(64, 8, 4),
         CacheConfig(64, 8, 4),
-        #CacheConfig(64, 12, 4),
+        #CacheConfig(64, 12, 5), # is not power of 2, doesn't work
+        CacheConfig(64, 8, 4),
+        CacheConfig(64, 8, 4),
+        #CacheConfig(64, 12, 4), # is not power of 2, doesn't work
     ]
     L2_config = [
-        #CacheConfig(512, 8, 8),
+        CacheConfig(512, 8, 8),
         #CacheConfig(820, 8, 8),
-        #CacheConfig(512, 8, 8),
+        CacheConfig(512, 8, 8),
         CacheConfig(512, 8, 8),
         #CacheConfig(1024, 8, 15),
     ]
     LLC_config = [
-        #CacheConfig(2048, 16, 20),
+        CacheConfig(2048, 16, 20),
         #CacheConfig(2048, 16, 22),
-        #CacheConfig(4096, 16, 21),
+        CacheConfig(4096, 16, 21),
         CacheConfig(8192, 16, 22),
         #CacheConfig(2048, 16, 45),
     ]

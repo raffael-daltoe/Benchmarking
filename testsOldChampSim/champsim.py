@@ -427,7 +427,7 @@ class ChampSimRunner:
         self.download_traces(trace_urls)
 
         with ThreadPoolExecutor(max_workers=self.threads) as executor:
-            for index, sample in enumerate(self.Samples, start=5):
+            for index, sample in enumerate(self.Samples, start=4):
                 L1I, L1D, L2C, LLC = sample
 
                 # Each sample set has its own folder
@@ -499,8 +499,8 @@ def main() -> None:
 
     # You can populate trace_urls from any source as needed
     trace_urls = [
-        "https://dpc3.compas.cs.stonybrook.edu/champsim-traces/speccpu/400.perlbench-41B.champsimtrace.xz",
-        "https://dpc3.compas.cs.stonybrook.edu/champsim-traces/speccpu/400.perlbench-50B.champsimtrace.xz",
+        #"https://dpc3.compas.cs.stonybrook.edu/champsim-traces/speccpu/400.perlbench-41B.champsimtrace.xz",
+        #"https://dpc3.compas.cs.stonybrook.edu/champsim-traces/speccpu/400.perlbench-50B.champsimtrace.xz",
     ]
 
     policies = ["bip","hawkeye","fifo","emissary","pcn","rlr","drrip","lru",
@@ -516,29 +516,29 @@ def main() -> None:
         #CacheConfig(64, 8, 4),
         #CacheConfig(64, 8, 4),
         #CacheConfig(64, 8, 4),
-        #CacheConfig(64, 8, 4),
         CacheConfig(64, 8, 4),
+        #CacheConfig(64, 8, 4),
     ]
     L1D_config = [
         #CacheConfig(64, 8, 4),
         #CacheConfig(64, 12, 5),
         #CacheConfig(64, 8, 4),
-        #CacheConfig(64, 8, 4),
-        CacheConfig(64, 12, 4),
+        CacheConfig(64, 8, 4),
+        #CacheConfig(64, 12, 4),
     ]
     L2_config = [
         #CacheConfig(512, 8, 8),
         #CacheConfig(820, 8, 8),
         #CacheConfig(512, 8, 8),
-        #CacheConfig(512, 8, 8),
-        CacheConfig(1024, 8, 15),
+        CacheConfig(512, 8, 8),
+        #CacheConfig(1024, 8, 15),
     ]
     LLC_config = [
         #CacheConfig(2048, 16, 20),
         #CacheConfig(2048, 16, 22),
         #CacheConfig(4096, 16, 21),
-        #CacheConfig(8192, 16, 22),
-        CacheConfig(2048, 16, 45),
+        CacheConfig(8192, 16, 22),
+        #CacheConfig(2048, 16, 45),
     ]
 
     # Initialize the ChampSimRunner

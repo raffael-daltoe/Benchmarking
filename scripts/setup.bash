@@ -74,6 +74,7 @@ configure_champsim() {
 # Function to configure and build Intel PIN
 configure_intel_pin() {
     echo "###############    Starting Intel PIN Configuration   ###############"
+    cp ../ChampSimTracer/champsim_tracer.cpp ChampSim/tracer/pin
     cd ChampSim/tracer/pin
     make -j"${nproc}" -s
     cd ../../../

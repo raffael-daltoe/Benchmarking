@@ -43,25 +43,35 @@ compile:
 	@mkdir -p $(BINARY_DIR)
 	@if [ -z "$(strip $(PROGRAM))" ]; then \
 		echo "No PROGRAM specified, compiling all source files in $(CODES_DIR)"; \
-		for file in $(CODES_DIR)/*.cpp $(CODES_DIR)/*.c; do \
+		for file in $(CODES_DIR)/*.c $(CODES_DIR)/*.cpp; do \
 			[ -e "$$file" ] || continue; \
-			base_file=$$(basename $$file .cpp); \
-			base_file=$$(basename $$base_file .c); \
-			echo "Compiling $$base_file..."; \
-			$(CC) $(CFLAGS) -o $(BINARY_DIR)/$$base_file $$file || $(CPP) $(CFLAGS) -o $(BINARY_DIR)/$$base_file $$file; \
+			base_file=$$(basename "$$file"); \
+			case "$$file" in \
+				*.cpp) \
+					echo "Compiling $$base_file with g++..."; \
+					$(CPP) $(CFLAGS) -o $(BINARY_DIR)/$${base_file%.cpp} "$$file"; \
+					;; \
+				*.c) \
+					echo "Compiling $$base_file with gcc..."; \
+					$(CC) $(CFLAGS) -o $(BINARY_DIR)/$${base_file%.c} "$$file"; \
+					;; \
+			esac; \
 		done; \
 	else \
 		if [ -f $(CODES_DIR)/$(PROGRAM).cpp ]; then \
-			$(CC) $(CFLAGS) -o $(BINARY_DIR)/$(PROGRAM) $(CODES_DIR)/$(PROGRAM).cpp; \
+			echo "Compiling $(PROGRAM).cpp with g++..."; \
+			$(CPP) $(CFLAGS) -o $(BINARY_DIR)/$(PROGRAM) $(CODES_DIR)/$(PROGRAM).cpp; \
 		elif [ -f $(CODES_DIR)/$(PROGRAM).c ]; then \
-			$(CPP) $(CFLAGS) -o $(BINARY_DIR)/$(PROGRAM) $(CODES_DIR)/$(PROGRAM).c; \
+			echo "Compiling $(PROGRAM).c with gcc..."; \
+			$(CC) $(CFLAGS) -o $(BINARY_DIR)/$(PROGRAM) $(CODES_DIR)/$(PROGRAM).c; \
 		else \
 			echo "Source file for $(PROGRAM) not found in $(CODES_DIR)"; \
 			exit 1; \
 		fi; \
 	fi
 
-trace-program: compile
+
+trace-program:
 	@mkdir -p $(TRACE_DIR)
 	@if [ -z "$(strip $(PROGRAM))" ]; then \
 		for bin in $(BINARY_DIR)/*; do \
@@ -74,8 +84,6 @@ trace-program: compile
 				-cores 1 \
 				-jobs 32 \
 				-exit_after_tracing $(SIMULATION_INSTRUCTIONS) \
-				-L1I_size 256K -L1D_size 256K -L0I_size 32K -L0D_size 32K \
-				-LL_size 2M -L1I_assoc 8 -L1D_assoc 8 -LL_assoc 16 \
 				-- $$bin; \
 			( cd $(TRACE_DIR) && \
 			  bash ../convert-trace/run_portabilize_trace.sh > /dev/null 2>&1 && \
@@ -121,7 +129,7 @@ launch-trace: check-param
 launch-all: check-param
 #	@mkdir -p simulations/
 	@cp $(PARAM) PARAMS.in 
-	@python3 scarab.py $(nproc) $(SCARAB_DIR) $(TRACE_DIR) $(SIM_OUT) \
+	@python3 scarab.py 10 $(SCARAB_DIR) $(TRACE_DIR) $(SIM_OUT) \
 	$(SIMULATION_INSTRUCTIONS) $(WARMUP_INSTRUCTIONS) $(PARAM)
 #	@rm PARAMS.in
 

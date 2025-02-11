@@ -280,7 +280,7 @@ class ScarabExecutor:
         os.makedirs(self.output_dir, exist_ok=True)
 
         with ThreadPoolExecutor(max_workers=self.threads) as executor:
-            for index, (L1I_cfg, L1D_cfg, L2_cfg, LLC_cfg) in enumerate(self.cache_samples, start=5):
+            for index, (L1I_cfg, L1D_cfg, L2_cfg, LLC_cfg) in enumerate(self.cache_samples, start=1):
                 sample_folder = os.path.join(self.output_dir_orig, f"Sample{index}")
                 os.makedirs(sample_folder, exist_ok=True)
 
@@ -376,32 +376,32 @@ def main():
     # ----------------------------------------------------------
     # Example cache configurations
     L1I_config = [
-        #CacheConfig(64, 8, 4),
-        #CacheConfig(64, 8, 4),
-        #CacheConfig(64, 8, 4),
+        CacheConfig(64, 8, 4),
         #CacheConfig(64, 8, 4),
         CacheConfig(64, 8, 4),
+        CacheConfig(64, 8, 4),
+        #CacheConfig(64, 8, 4),
     ]
     L1D_config = [
-        #CacheConfig(64, 8, 4),
+        CacheConfig(64, 8, 4),
         #CacheConfig(64, 12, 5),
-        #CacheConfig(64, 8, 4),
-        #CacheConfig(64, 8, 4),
-        CacheConfig(64, 12, 4),
+        CacheConfig(64, 8, 4),
+        CacheConfig(64, 8, 4),
+        #CacheConfig(64, 12, 4),
     ]
     L2_config = [
-        #CacheConfig(512, 8, 8),
+        CacheConfig(512, 8, 8),
         #CacheConfig(820, 8, 8),
-        #CacheConfig(512, 8, 8),
-        #CacheConfig(512, 8, 8),
-        CacheConfig(1024, 8, 15),
+        CacheConfig(512, 8, 8),
+        CacheConfig(512, 8, 8),
+        #CacheConfig(1024, 8, 15),
     ]
     LLC_config = [
-        #CacheConfig(2048, 16, 20),
+        CacheConfig(2048, 16, 20),
         #CacheConfig(2048, 16, 22),
-        #CacheConfig(4096, 16, 21),
-        #CacheConfig(8192, 16, 22),
-        CacheConfig(2048, 16, 45),
+        CacheConfig(4096, 16, 21),
+        CacheConfig(8192, 16, 22),
+        #CacheConfig(2048, 16, 45),
     ]
 
     # Construct the ScarabExecutor with these lists

@@ -10,11 +10,19 @@ TRACER_DIR = $(CHAMPSIM_DIR)/tracer
 PIN_TRACER_DIR = $(TRACER_DIR)/pin
 CVP_CONVERTER_DIR = $(TRACER_DIR)/cvp_converter
 CODES_DIR = codes
+BIN_DIR = $(CODES_DIR)/bin
 TRACES_DIR = traces
 SIMULATION_OUTPUTS = sim_outputs
 PARAM = param
+NPB_CPP_DIR = ../tools/NPB-CPP
+NPB_SER_DIR = $(NPB_CPP_DIR)/NPB-SER 
 
 SRC ?=
+
+# For NPB-CPP
+BENCHMARK ?=
+WORKLOAD ?=
+
 
 PIN = pin
 
@@ -74,17 +82,22 @@ compile:
 		done; \
 	fi
 
+compile_from_NPB:
+	@mkdir -p $(TRACES_DIR)
+	cd $(NPB_SER_DIR) && \
+	make $(BENCHMARK) CLASS=$(WORKLOAD) && \
+	mv bin/$(BENCHMARK).$(WORKLOAD) ../../../testsOldChampSim/codes/bin/$(shell echo $(BENCHMARK)$(WORKLOAD) | tr '[:upper:]' '[:lower:]')
+
 # Convert the program to Pin traces
-convert-pin: compile
+convert-pin:
 	@mkdir -p $(TRACES_DIR)
 	@if [ -z "$(strip $(SRC))" ]; then \
-		for file in $(CODES_DIR)/*.cpp $(CODES_DIR)/*.c; do \
+		for file in $(BIN_DIR)/*; do \
 			[ -e "$$file" ] || continue; \
-			base_file=$$(basename $$file .cpp); \
-			base_file=$$(basename $$base_file .c); \
+			base_file=$$(basename $$file); \
 			echo "Converting $$base_file to Pin trace..."; \
 			$(PIN) -t $(OBJ-INTEL64) -o $(TRACES_DIR)/$$base_file.champsimtrace \
-			-t $(SIMULATION_INSTRUCTIONS) -- ./$$base_file; \
+			-t $(SIMULATION_INSTRUCTIONS) -- ./$(BIN_DIR)/$$base_file; \
 		done; \
 	else \
 		for src in $(SRC); do \
@@ -103,7 +116,7 @@ trace: check-src
 	@echo "Simulation Finished"
 
 trace-all:
-	@python3 champsim.py $(nproc) $(CHAMPSIM_DIR) $(TRACES_DIR) \
+	@python3 champsim.py 11 $(CHAMPSIM_DIR) $(TRACES_DIR) \
 	$(PARAM)/champsim_config.json $(SIMULATION_OUTPUTS) \
 	$(if $(filter-out 0,$(WARMUP_INSTRUCTIONS)),$(WARMUP_INSTRUCTIONS),none) \
 	$(if $(filter-out 0,$(SIMULATION_INSTRUCTIONS)),$(SIMULATION_INSTRUCTIONS),none)
