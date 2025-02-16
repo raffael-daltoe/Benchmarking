@@ -51,7 +51,7 @@ compile:
 	fi
 
 exec-all: compile
-	@python3 gem5.py 10 $(GEM5_DIR) $(BINARY_DIR) \
+	@python3 gem5.py 8 $(GEM5_DIR) $(BINARY_DIR) \
 	$(MY_SYSTEM_DIR) $(SIMULATION_OUTPUTS) \
 	$(if $(filter-out 0,$(WARMUP_INSTRUCTIONS)),$(WARMUP_INSTRUCTIONS),none) \
 	$(if $(filter-out 0,$(SIMULATION_INSTRUCTIONS)),$(SIMULATION_INSTRUCTIONS),none)

@@ -36,7 +36,7 @@
 --cfs_per_cycle                 6                         # Number of branches that can be predicted in a single cycle
 --bp_update_at_retire           0                         # Update the BP at retire. If false, update at the end of exec.
 --update_bp_off_path            1                         # Allow off path ops to update branch predictor state (e.g., ops when they complete exec stage).
---bp_mech tagescl                   
+--bp_mech gshare                   
 
 
 #### BTB
@@ -114,16 +114,16 @@
 --mlc_assoc 8
 --mlc_line_size                  64
 --mlc_interleave_factor          64
---mlc_cache_repl_policy 
+--mlc_cache_repl_policy         0
 
 ### LLC 
---l1_size 8388608  # 64 sets * 8 ways * 64 bytes per line
+--l1_size 2097152  # 64 sets * 8 ways * 64 bytes per line
 --l1_banks                      8
---l1_cycles 22
+--l1_cycles 20
 --l1_assoc 16
 --l1_line_size                  64
 --l1_interleave_factor          64
---l1_cache_repl_policy 3
+--l1_cache_repl_policy 0
 --cache_stat_enable             1
 --l2l1pref_on                   1
 --l1_cycle_time                 4000
@@ -228,12 +228,12 @@
 --ramulator_tWTRS		3		
 --ramulator_tWTRL		9		
 --ramulator_tRP			40		
---ramulator_tRPpb		40		
---ramulator_tRPab		40		
---ramulator_tRCD		40		
---ramulator_tRCDR		40		
---ramulator_tRCDW		40		
---ramulator_tRAS		40		
+--ramulator_tRPpb		16		
+--ramulator_tRPab		16		
+--ramulator_tRCD		16		
+--ramulator_tRCDR		16		
+--ramulator_tRCDW		16		
+--ramulator_tRAS		39		
 --dram_tech_in_nm		32
 
 ## Other

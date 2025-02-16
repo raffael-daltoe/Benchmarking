@@ -15,9 +15,6 @@ new traces:
     ```
 
 If traces are already available, you can proceed with starting the simulations. 
-Scarab offers two ways to launch a simulation: either using the binary directly 
-or via a Python script, both located in the Scarab directory. You can configure 
-the simulation instructions in the Makefile.
 
 The architecture's configuration can be modified by editing the `param.in` 
 file inside the `param` folder.
@@ -46,11 +43,9 @@ This command will execute all the traces located in the `traces` folder.
 ## Results
 
 The `graphic.py` script in the `results` folder allows you to easily visualize 
-metrics. To customize the metrics:
+metrics.
 
-1. Add any desired metric to the `metrics_to_collect` list in the script.
-
-2. Run the following command to generate all the graphics inside results folder:
+1. Run the following command to generate all the graphics inside results folder:
 
     ```bash
     python3 graphic.py

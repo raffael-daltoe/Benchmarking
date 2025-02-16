@@ -425,31 +425,19 @@ def main():
     # Example cache configurations
     L1I_config = [
         CacheConfig(64, 8, 4),
-        #CacheConfig(64, 8, 4),
         CacheConfig(64, 8, 4),
-        CacheConfig(64, 8, 4),
-        #CacheConfig(64, 8, 4),
     ]
     L1D_config = [
         CacheConfig(64, 8, 4),
-        #CacheConfig(64, 12, 5), # is not power of 2, doesn't work
         CacheConfig(64, 8, 4),
-        CacheConfig(64, 8, 4),
-        #CacheConfig(64, 12, 4), # is not power of 2, doesn't work
     ]
     L2_config = [
         CacheConfig(512, 8, 8),
-        #CacheConfig(820, 8, 8),
         CacheConfig(512, 8, 8),
-        CacheConfig(512, 8, 8),
-        #CacheConfig(1024, 8, 15),
     ]
     LLC_config = [
         CacheConfig(2048, 16, 20),
-        #CacheConfig(2048, 16, 22),
         CacheConfig(4096, 16, 21),
-        CacheConfig(8192, 16, 22),
-        #CacheConfig(2048, 16, 45),
     ]
 
     # Initialize the ChampSimRunner

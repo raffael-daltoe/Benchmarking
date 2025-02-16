@@ -4,71 +4,72 @@ import matplotlib.pyplot as plt
 from collections import defaultdict
 import matplotlib.patches as patches  # For drawing rectangles as limiters
 
-# Define directories and file paths
-Sample = '2'
-trace_path = 'convolution'
-input_dir = f'../sim_outputs/Sample{Sample}/'
+#########################################################
+#                 EDIT ONLY THIS PART                   #
+#########################################################
 
-# Initialize data structure to store results
-data = defaultdict(lambda: defaultdict(lambda: defaultdict(float)))  # {trace: {policy: {branch_prefetcher: IPC value}}}
+Sample = '1'
+trace = "is.A"
+root = f"../sim_outputs/{trace}/Sample{Sample}"
 
-# Parse files
-for file_name in os.listdir(input_dir):
-    if file_name.endswith(".txt"):
-        with open(os.path.join(input_dir, file_name), 'r') as file:
-            content = file.read()
+# Data structure remains the same:
+# data[trace_name][policy][f"{branch}_{prefetcher}"] = IPC value
+data = defaultdict(lambda: defaultdict(lambda: defaultdict(float)))
 
-            # Extract trace name
-            trace_match = re.search(r"(.*?)_pol:", file_name)
-            if not trace_match:
+# Walk through the directory tree: branch -> prefetcher -> policy
+for branch_dir in os.listdir(root):
+    branch_path = os.path.join(root, branch_dir)
+    if not os.path.isdir(branch_path):
+        continue
+    
+    for prefetch_dir in os.listdir(branch_path):
+        prefetch_path = os.path.join(branch_path, prefetch_dir)
+        if not os.path.isdir(prefetch_path):
+            continue
+        
+        for policy_dir in os.listdir(prefetch_path):
+            policy_path = os.path.join(prefetch_path, policy_dir)
+            if not os.path.isdir(policy_path):
                 continue
-            trace = trace_match.group(1)
+            
+            # Process each text file in the policy directory
+            for file_name in os.listdir(policy_path):
+                if file_name.endswith(".txt"):
+                    full_path = os.path.join(policy_path, file_name)
+                    with open(full_path, 'r') as f:
+                        content = f.read()
+                        # New regex: look for "system.cpu.ipc" followed by the IPC value
+                        ipc_match = re.search(r"system\.cpu\.ipc\s+([\d\.]+)", content)
+                        if ipc_match:
+                            ipc_value = float(ipc_match.group(1))
+                            # Store the value; we use 'trace' as a fixed key,
+                            # 'policy_dir' as the cache replacement policy,
+                            # and combine branch and prefetcher for the key.
+                            data[trace][policy_dir][f"{branch_dir}_{prefetch_dir}"] = ipc_value
 
-            # Extract policy
-            policy_match = re.search(r"pol:(.*?)_bra:", file_name)
-            if not policy_match:
-                continue
-            policy = policy_match.group(1)
 
-            # Extract branch predictor
-            branch_match = re.search(r"bra:(.*?)_pre:", file_name)
-            if not branch_match:
-                continue
-            branch = branch_match.group(1)
-
-            # Extract prefetcher
-            prefetcher_match = re.search(r"pre:(.*?)_output_DONE.txt", file_name)
-            if not prefetcher_match:
-                continue
-            prefetcher = prefetcher_match.group(1)
-
-            # Extract IPC value
-            ipc_match = re.search(r"CPU 0 cumulative IPC: ([\d\.]+)", content)
-            if ipc_match:
-                ipc = float(ipc_match.group(1))
-                data[trace][policy][f"{branch}_{prefetcher}"] = ipc
+#########################################################
+#           EVERYTHING ELSE (PLOTTING) UNCHANGED        #
+#########################################################
 
 def plot_everyone():
-        
     # Generate bar graph for each trace + policy
     all_ipc_values = []
-    #plt.clf()
 
-    for trace, policies in data.items():
+    for trace_name, policies in data.items():
         for policy, branch_prefetchers in policies.items():
-            # Sort the branch_prefetchers by IPC value
+            # Sort by IPC value
             sorted_items = sorted(branch_prefetchers.items(), key=lambda x: x[1])
-            labels = [item[0] for item in sorted_items]
+            labels = [item[0] for item in sorted_items]  # these keys are already branch_prefetcher only
             values = [item[1] for item in sorted_items]
 
-            # Store IPC values for global top 10
-            all_ipc_values.extend([(f"{trace} | {policy} | {label}", value) for label, value in zip(labels, values)])
+            all_ipc_values.extend([(f"{trace_name} | {policy} | {lbl}", val)
+                                   for lbl, val in zip(labels, values)])
 
-            # Create the bar graph
             plt.figure(figsize=(14, 8))
             bars = plt.bar(labels, values, color=plt.cm.tab20.colors[:len(labels)])
 
-            # Highlight the highest IPC in green
+            # Highlight max
             max_value = max(values)
             for bar, value in zip(bars, values):
                 color = 'green' if value == max_value else 'black'
@@ -80,34 +81,29 @@ def plot_everyone():
 
             plt.xlabel('Branch_Prefetcher', fontsize=14)
             plt.ylabel('IPC', fontsize=14)
-            plt.title(f'Trace: {trace} | Algorithm: {policy}', fontsize=16)
+            plt.title(f'Trace: {trace_name} | Algorithm: {policy}', fontsize=16)
             plt.xticks(rotation=45, ha='right')
             plt.tight_layout()
-
-            # Show or save the plot
             plt.show()
 
+
 def plot_10bestIPC():
-    # Create a graph for the top 10 IPC values globally
+    # Collect all IPC values globally
     all_ipc_values = []
-    #plt.close()
-    #plt.clf()
-
-    for trace, policies in data.items():
+    for trace_name, policies in data.items():
         for policy, branch_prefetchers in policies.items():
-            # Collect IPC values for global top 10
-            all_ipc_values.extend([(f"{trace} | {policy} | {label}", value) for label, value in branch_prefetchers.items()])
+            for bp, ipc_val in branch_prefetchers.items():
+                # Remove policy from label: only include trace and branch_prefetcher
+                all_ipc_values.append((f"{trace_name} | {bp}", ipc_val))
 
-    # Sort and filter the top 10 IPC values
+    # Sort and pick top 10
     all_ipc_values = sorted(all_ipc_values, key=lambda x: x[1], reverse=True)[:10]
     labels = [item[0] for item in all_ipc_values]
     values = [item[1] for item in all_ipc_values]
 
-    # Plot the top 10 IPC values
     plt.figure(figsize=(14, 8))
     bars = plt.bar(labels, values, color=plt.cm.tab10.colors[:len(labels)])
 
-    # Highlight the highest IPC in green
     max_value = max(values)
     for bar, value in zip(bars, values):
         color = 'green' if value == max_value else 'black'
@@ -117,33 +113,30 @@ def plot_10bestIPC():
             ha='center', va='bottom', fontsize=10, color=color
         )
 
-    plt.xlabel('Trace | Policy | Branch_Prefetcher', fontsize=14)
+    plt.xlabel('Trace | Branch_Prefetcher', fontsize=14)
     plt.ylabel('IPC', fontsize=14)
     plt.title('Top 10 IPC Values Across All Traces and Policies', fontsize=16)
     plt.xticks(rotation=45, ha='right')
     plt.tight_layout()
-
-    # Show the final top 10 graph
     plt.show()
 
+
 def plot_eachtrace():
-    for trace, policies in data.items():
-        # Collect IPC values across all policies and branch prefetchers for this trace
+    for trace_name, policies in data.items():
+        # Gather all for this trace
         aggregated_data = {}
         for policy, branch_prefetchers in policies.items():
-            for branch_prefetcher, ipc in branch_prefetchers.items():
-                aggregated_data[f"{policy} | {branch_prefetcher}"] = ipc
+            for bp, ipc in branch_prefetchers.items():
+                # Only keep branch_prefetcher information
+                aggregated_data[f"{bp}"] = ipc
 
-        # Sort the aggregated data by IPC values
+        # Sort by IPC
         sorted_items = sorted(aggregated_data.items(), key=lambda x: x[1])
         labels = [item[0] for item in sorted_items]
         values = [item[1] for item in sorted_items]
 
-        # Create the bar graph
         plt.figure(figsize=(14, 8))
         bars = plt.bar(labels, values, color=plt.cm.tab20.colors[:len(labels)])
-
-        # Highlight the highest IPC in green
         max_value = max(values)
         for bar, value in zip(bars, values):
             color = 'green' if value == max_value else 'black'
@@ -153,55 +146,45 @@ def plot_eachtrace():
                 ha='center', va='bottom', fontsize=10, color=color
             )
 
-        plt.xlabel('Policy | Branch_Prefetcher', fontsize=14)
+        plt.xlabel('Branch_Prefetcher', fontsize=14)
         plt.ylabel('IPC', fontsize=14)
-        plt.title(f'Trace: {trace} - IPC Comparison', fontsize=16)
+        plt.title(f'Trace: {trace_name} - IPC Comparison', fontsize=16)
         plt.xticks(rotation=90, ha='right')
         plt.tight_layout()
-
-        # Show the plot for this trace
         plt.show()
 
-def plot_branch_prefetcher_across_policies():
-    for trace, policies in data.items():
-        # Organize data by Branch_Prefetcher
-        branch_prefetchers = defaultdict(dict)
-        
-        for policy, branch_prefetcher_dict in policies.items():
-            for branch_prefetcher, ipc in branch_prefetcher_dict.items():
-                branch_prefetchers[branch_prefetcher][policy] = ipc
-        
-        # Create plots for each Branch_Prefetcher
-        for branch_prefetcher, ipc_values in branch_prefetchers.items():
-            policies = list(ipc_values.keys())
-            values = list(ipc_values.values())
-            
-            # Sort policies by IPC values
-            sorted_items = sorted(zip(policies, values), key=lambda x: x[1])
-            sorted_policies = [item[0] for item in sorted_items]
-            sorted_values = [item[1] for item in sorted_items]
 
-            # Create the bar graph
-            plt.figure(figsize=(14, 8))
-            bars = plt.bar(sorted_policies, sorted_values, color=plt.cm.tab10.colors[:len(sorted_policies)])
+def plot_branch_prefetcher_across_policies():
+    for trace_name, policies in data.items():
+        # group by (branch_prefetcher)
+        branch_prefetchers = defaultdict(dict)
+        for policy, bp_dict in policies.items():
+            for bp, ipc in bp_dict.items():
+                branch_prefetchers[bp][policy] = ipc
+        
+        for bp, ipc_values in branch_prefetchers.items():
+            pols = list(ipc_values.keys())
+            vals = list(ipc_values.values())
             
-            # Highlight the highest IPC in green
+            sorted_items = sorted(zip(pols, vals), key=lambda x: x[1])
+            sorted_policies = [p for p, _ in sorted_items]
+            sorted_values = [v for _, v in sorted_items]
+
+            plt.figure(figsize=(14, 8))
+            bars = plt.bar(sorted_policies, sorted_values,
+                           color=plt.cm.tab10.colors[:len(sorted_policies)])
             max_value = max(sorted_values)
             for bar, value in zip(bars, sorted_values):
                 color = 'green' if value == max_value else 'black'
-                plt.text(
-                    bar.get_x() + bar.get_width() / 2.0, value,
-                    f'{value:.2f}',
-                    ha='center', va='bottom', fontsize=10, color=color
-                )
-
+                plt.text(bar.get_x() + bar.get_width() / 2.0,
+                         value, f'{value:.2f}', ha='center', va='bottom',
+                         fontsize=10, color=color)
+            
             plt.xlabel('Policy', fontsize=14)
             plt.ylabel('IPC', fontsize=14)
-            plt.title(f'Trace: {trace} | Branch_Prefetcher: {branch_prefetcher}', fontsize=16)
+            plt.title(f'Trace: {trace_name} | Branch_Prefetcher: {bp}', fontsize=16)
             plt.xticks(rotation=45, ha='right')
             plt.tight_layout()
-            
-            # Show the plot
             plt.show()
 
 
@@ -366,7 +349,7 @@ def plot_policy_group_by_trace():
         plt.show()
 
 
-def plot_selected_policies_by_trace(selected_policies,save_path):
+def plot_selected_policies_by_trace(selected_policies, save_path):
     """
     For each trace in the data that has at least one policy in 'selected_policies',
     create a separate figure. The figure’s title is the trace name.
@@ -389,11 +372,6 @@ def plot_selected_policies_by_trace(selected_policies,save_path):
     # Build a style map: each policy -> (color, hatch)
     style_mapping = {}
     for i, pol in enumerate(sorted_policies):
-        #cidx = i % len(colors)
-        #hidx = i % len(hatches)
-        #bar.set_facecolor(colors[cidx])
-        #bar.set_hatch(hatches[hidx])
-        #bar.set_edgecolor('black')
         style_mapping[pol] = (
             colors[i % len(colors)],
             hatches[i % len(hatches)]
@@ -417,7 +395,8 @@ def plot_selected_policies_by_trace(selected_policies,save_path):
                 # Sort branch/prefetchers for consistent ordering
                 for bp, ipc_val in sorted(data[trace][policy].items()):
                     bp_formatted = bp.replace('_', ' | ', 1)
-                    label = f"{policy} | {bp_formatted}"
+                    # Remove the policy portion from the label
+                    label = bp_formatted
                     x_positions.append(offset)
                     x_labels.append(label)
                     ipcs.append(ipc_val)
@@ -445,177 +424,16 @@ def plot_selected_policies_by_trace(selected_policies,save_path):
         # Plot bars
         bars = plt.bar(x_positions, ipcs, width=bar_width, edgecolor='black')
         for i, bar in enumerate(bars):
-            #policy = bar_policies[i]
-            #facecolor, hatch = style_mapping.get(policy, ('#AAAAAA', ''))
-            #bar.set_facecolor(facecolor)
-            #bar.set_hatch(hatch)
-            #bar.set_edgecolor('black')
             cidx = i % len(colors)
             hidx = i % len(hatches)
             bar.set_facecolor(colors[cidx])
             bar.set_hatch(hatches[hidx])
             bar.set_edgecolor('black')
 
-        # -------------------------------------------------------------------
-        # NEW LOGIC: Highlight local maximum *within each policy group*.
-        # -------------------------------------------------------------------
+        # Highlight local maximum *within each policy group*.
         for (policy, start_idx, end_idx) in policy_boundaries:
-            # Slice out the IPCs for this policy's bars
             group_ipcs = ipcs[start_idx:end_idx + 1]
             local_max = max(group_ipcs)
-
-            # Label each bar, highlighting the group max in green/bold
-            for i, bar_idx in enumerate(range(start_idx, end_idx + 1)):
-                bar = bars[bar_idx]
-                val = ipcs[bar_idx]
-                if val == local_max:
-                    txt_color = 'green'
-                    fw = 'bold'
-                else:
-                    txt_color = 'black'
-                    fw = 'normal'
-                
-                plt.text(
-                    bar.get_x() + bar.get_width() / 2.0,
-                    bar.get_height(),
-                    f"{val:.2f}",
-                    ha='center',
-                    va='bottom',
-                    fontsize=10,
-                    color=txt_color,
-                    fontweight=fw
-                )
-
-        # X-axis labels, trace title
-        plt.xticks(x_positions, x_labels, rotation=45, ha='right', fontsize=10)
-        plt.xlabel('Policy | Branch | Prefetcher', fontsize=14)
-        plt.ylabel('IPC', fontsize=14)
-        plt.title(f"Trace: {trace}", fontsize=16, fontweight='normal')
-        plt.ylim(0, new_ylim)
-
-        # Draw vertical dotted lines between policy groups
-        for i in range(len(policy_boundaries) - 1):
-            current = policy_boundaries[i]
-            next_group = policy_boundaries[i + 1]
-            # Divider x = midpoint between last bar of current group & first bar of next group
-            divider_x = (x_positions[current[2]] + x_positions[next_group[1]]) / 2.0
-            plt.vlines(divider_x, 0, new_ylim, colors='black', linestyles='dotted', linewidth=1)
-
-        # Annotate each policy name in black (not bold) at the top of its segment
-        for (policy, start_idx, end_idx) in policy_boundaries:
-            seg_left = x_positions[start_idx] - bar_width * 0.5 - extra_spacing
-            seg_right = x_positions[end_idx] + bar_width * 0.5 + extra_spacing
-            seg_center = (seg_left + seg_right) / 2.0
-            plt.text(seg_center, new_ylim - top_margin / 2,
-                     policy, ha='center', va='top',
-                     fontsize=14, fontweight='normal', color='black')
-
-        plt.tight_layout()
-        #final_filename = f"{save_path}_{trace}.png"
-        #plt.savefig(final_filename)
-
-
-        #plt.savefig(full_save_path)
-
-        plt.show()
-
-
-def plot_selected_policies_by_trace_top5(selected_policies, save_path):
-    """
-    For each trace in the data that has at least one policy in 'selected_policies',
-    create a separate figure that plots only the top 5 IPC values (per policy).
-    
-    Within each figure:
-      - Bars are grouped by policy.
-      - Each policy's bars use a distinct non-black grayscale color + a hatch (texture).
-      - Vertical dotted lines separate policy groups.
-      - The policy name is written at the top in black (not bold).
-      - Each bar is labeled with its IPC value (the highest bar within each policy group is highlighted in green/bold).
-    """
-    # A small set of grayscale colors (not pure black or white) plus some hatch patterns.
-    colors = ['#666666', '#888888', '#AAAAAA', '#CCCCCC', '#999999', '#BBBBBB']
-    hatches = ['////', '\\\\', 'xx', '..', '++', '--']
-
-    # Sort policies to ensure consistent order
-    sorted_policies = sorted(selected_policies)
-
-    # Build a style map: each policy -> (color, hatch)
-    style_mapping = {}
-    for i, pol in enumerate(sorted_policies):
-        style_mapping[pol] = (
-            colors[i % len(colors)],
-            hatches[i % len(hatches)]
-        )
-
-    # Loop over each trace in the data
-    for trace in sorted(data.keys()):
-        # Collect bars for the current trace
-        x_positions = []
-        x_labels = []
-        ipcs = []
-        bar_policies = []
-
-        # We'll store (policy, first_idx, last_idx) to draw dividers & labels
-        policy_boundaries = []
-
-        offset = 0.0
-        for policy in sorted_policies:
-            if policy in data[trace]:
-                start_idx = len(ipcs)
-                # Sort branch/prefetchers for this policy by IPC descending and take only top 5
-                sorted_items = sorted(data[trace][policy].items(), key=lambda x: x[1], reverse=True)
-                top_items = sorted_items[:4]
-                for bp, ipc_val in top_items:
-                    bp_formatted = bp.replace('_', ' | ', 1)
-                    label = f"{policy} | {bp_formatted}"
-                    x_positions.append(offset)
-                    x_labels.append(label)
-                    ipcs.append(ipc_val)
-                    bar_policies.append(policy)
-                    offset += 1
-                end_idx = len(ipcs) - 1
-                if end_idx >= start_idx:
-                    policy_boundaries.append((policy, start_idx, end_idx))
-
-        # Skip if no data for this trace
-        if not ipcs:
-            continue
-
-        # Compute the y-limit (plus margin at the top for policy labels)
-        global_max = max(ipcs)
-        top_ylim = global_max * 1.2 if global_max > 0 else 1
-        top_margin = top_ylim * 0.2
-        new_ylim = top_ylim + top_margin
-
-        # Create a new figure for this trace
-        plt.figure(figsize=(24, 14))
-        bar_width = 0.8
-        extra_spacing = bar_width / 4.0
-
-        # Plot bars
-        bars = plt.bar(x_positions, ipcs, width=bar_width, edgecolor='black')
-        for i, bar in enumerate(bars):
-            # Optionally, you can use the style mapping per policy:
-            # policy = bar_policies[i]
-            # facecolor, hatch = style_mapping.get(policy, ('#AAAAAA', ''))
-            # bar.set_facecolor(facecolor)
-            # bar.set_hatch(hatch)
-            # bar.set_edgecolor('black')
-            # Or use a simple cycling of colors/hatches:
-            cidx = i % len(colors)
-            hidx = i % len(hatches)
-            bar.set_facecolor(colors[cidx])
-            bar.set_hatch(hatches[hidx])
-            bar.set_edgecolor('black')
-
-        # -------------------------------------------------------------------
-        # NEW LOGIC: Highlight local maximum *within each policy group*.
-        # -------------------------------------------------------------------
-        for (policy, start_idx, end_idx) in policy_boundaries:
-            # Slice out the IPCs for this policy's bars
-            group_ipcs = ipcs[start_idx:end_idx + 1]
-            local_max = max(group_ipcs)
-            # Label each bar, highlighting the group max in green/bold
             for bar_idx in range(start_idx, end_idx + 1):
                 bar = bars[bar_idx]
                 val = ipcs[bar_idx]
@@ -638,7 +456,7 @@ def plot_selected_policies_by_trace_top5(selected_policies, save_path):
 
         # X-axis labels, trace title
         plt.xticks(x_positions, x_labels, rotation=45, ha='right', fontsize=10)
-        plt.xlabel('Policy | Branch | Prefetcher', fontsize=14)
+        plt.xlabel('Branch | Prefetcher', fontsize=14)
         plt.ylabel('IPC', fontsize=14)
         plt.title(f"Trace: {trace}", fontsize=16, fontweight='normal')
         plt.ylim(0, new_ylim)
@@ -647,7 +465,6 @@ def plot_selected_policies_by_trace_top5(selected_policies, save_path):
         for i in range(len(policy_boundaries) - 1):
             current = policy_boundaries[i]
             next_group = policy_boundaries[i + 1]
-            # Divider x = midpoint between last bar of current group & first bar of next group
             divider_x = (x_positions[current[2]] + x_positions[next_group[1]]) / 2.0
             plt.vlines(divider_x, 0, new_ylim, colors='black', linestyles='dotted', linewidth=1)
 
@@ -661,10 +478,128 @@ def plot_selected_policies_by_trace_top5(selected_policies, save_path):
                      fontsize=14, fontweight='normal', color='black')
 
         plt.tight_layout()
-        # If you want to save, you can add the trace to the file name here.
+        final_filename = f"{save_path}{trace}.png"
+        plt.savefig(final_filename)
+        plt.show()
+
+
+def plot_selected_policies_by_trace_top5(selected_policies, save_path):
+    """
+    For each trace in the data that has at least one policy in 'selected_policies',
+    create a separate figure that plots only the top 5 IPC values (per policy).
+    
+    Within each figure:
+      - Bars are grouped by policy.
+      - Each policy's bars use a distinct non-black grayscale color + a hatch (texture).
+      - Vertical dotted lines separate policy groups.
+      - The policy name is written at the top in black (not bold).
+      - Each bar is labeled with its IPC value (the highest bar within each policy group is highlighted in green/bold).
+    """
+    colors = ['#666666', '#888888', '#AAAAAA', '#CCCCCC', '#999999', '#BBBBBB']
+    hatches = ['////', '\\\\', 'xx', '..', '++', '--']
+
+    sorted_policies = sorted(selected_policies)
+
+    style_mapping = {}
+    for i, pol in enumerate(sorted_policies):
+        style_mapping[pol] = (
+            colors[i % len(colors)],
+            hatches[i % len(hatches)]
+        )
+
+    for trace in sorted(data.keys()):
+        x_positions = []
+        x_labels = []
+        ipcs = []
+        bar_policies = []
+        policy_boundaries = []
+
+        offset = 0.0
+        for policy in sorted_policies:
+            if policy in data[trace]:
+                start_idx = len(ipcs)
+                sorted_items = sorted(data[trace][policy].items(), key=lambda x: x[1], reverse=True)
+                top_items = sorted_items[:4]
+                for bp, ipc_val in top_items:
+                    bp_formatted = bp.replace('_', ' | ', 1)
+                    # Remove the policy portion from the label:
+                    label = bp_formatted
+                    x_positions.append(offset)
+                    x_labels.append(label)
+                    ipcs.append(ipc_val)
+                    bar_policies.append(policy)
+                    offset += 1
+                end_idx = len(ipcs) - 1
+                if end_idx >= start_idx:
+                    policy_boundaries.append((policy, start_idx, end_idx))
+
+        if not ipcs:
+            continue
+
+        global_max = max(ipcs)
+        top_ylim = global_max * 1.2 if global_max > 0 else 1
+        top_margin = top_ylim * 0.2
+        new_ylim = top_ylim + top_margin
+
+        plt.figure(figsize=(24, 14))
+        bar_width = 0.8
+        extra_spacing = bar_width / 4.0
+
+        bars = plt.bar(x_positions, ipcs, width=bar_width, edgecolor='black')
+        for i, bar in enumerate(bars):
+            cidx = i % len(colors)
+            hidx = i % len(hatches)
+            bar.set_facecolor(colors[cidx])
+            bar.set_hatch(hatches[hidx])
+            bar.set_edgecolor('black')
+
+        for (policy, start_idx, end_idx) in policy_boundaries:
+            group_ipcs = ipcs[start_idx:end_idx + 1]
+            local_max = max(group_ipcs)
+            for bar_idx in range(start_idx, end_idx + 1):
+                bar = bars[bar_idx]
+                val = ipcs[bar_idx]
+                if val == local_max:
+                    txt_color = 'green'
+                    fw = 'bold'
+                else:
+                    txt_color = 'black'
+                    fw = 'normal'
+                plt.text(
+                    bar.get_x() + bar.get_width() / 2.0,
+                    bar.get_height(),
+                    f"{val:.2f}",
+                    ha='center',
+                    va='bottom',
+                    fontsize=10,
+                    color=txt_color,
+                    fontweight=fw
+                )
+
+        plt.xticks(x_positions, x_labels, rotation=45, ha='right', fontsize=10)
+        plt.xlabel('Branch | Prefetcher', fontsize=14)
+        plt.ylabel('IPC', fontsize=14)
+        plt.title(f"Trace: {trace}", fontsize=16, fontweight='normal')
+        plt.ylim(0, new_ylim)
+
+        for i in range(len(policy_boundaries) - 1):
+            current = policy_boundaries[i]
+            next_group = policy_boundaries[i + 1]
+            divider_x = (x_positions[current[2]] + x_positions[next_group[1]]) / 2.0
+            plt.vlines(divider_x, 0, new_ylim, colors='black', linestyles='dotted', linewidth=1)
+
+        for (policy, start_idx, end_idx) in policy_boundaries:
+            seg_left = x_positions[start_idx] - bar_width * 0.5 - extra_spacing
+            seg_right = x_positions[end_idx] + bar_width * 0.5 + extra_spacing
+            seg_center = (seg_left + seg_right) / 2.0
+            plt.text(seg_center, new_ylim - top_margin / 2,
+                     policy, ha='center', va='top',
+                     fontsize=14, fontweight='normal', color='black')
+
+        plt.tight_layout()
         final_filename = f"{save_path}_{trace}.png"
         plt.savefig(final_filename)
-        #plt.show()
+        plt.show()
 
 
 def plot_selected_policies_by_trace_top3(selected_policies, save_path):
@@ -682,14 +617,11 @@ def plot_selected_policies_by_trace_top3(selected_policies, save_path):
       - The policy name is written at the top in black (not bold).
       - Each bar is labeled with its IPC value; the Best value (highest) within each policy group is highlighted in green and bold.
     """
-    # A small set of grayscale colors (not pure black or white) plus some hatch patterns.
     colors = ['#666666', '#888888', '#AAAAAA', '#CCCCCC', '#999999', '#BBBBBB']
     hatches = ['////', '\\\\', 'xx', '..', '++', '--']
 
-    # Sort policies to ensure consistent order
     sorted_policies = sorted(selected_policies)
 
-    # Build a style map: each policy -> (color, hatch)
     style_mapping = {}
     for i, pol in enumerate(sorted_policies):
         style_mapping[pol] = (
@@ -697,35 +629,28 @@ def plot_selected_policies_by_trace_top3(selected_policies, save_path):
             hatches[i % len(hatches)]
         )
 
-    # Loop over each trace in the data
     for trace in sorted(data.keys()):
-        # Collect bars for the current trace
         x_positions = []
         x_labels = []
         ipcs = []
         bar_policies = []
-
-        # We'll store (policy, first_idx, last_idx) to draw dividers & labels
         policy_boundaries = []
 
         offset = 0.0
         for policy in sorted_policies:
             if policy in data[trace]:
-                # We require at least 3 entries to pick Worst, Intermediary and Best.
                 if len(data[trace][policy]) < 3:
                     continue
 
                 start_idx = len(ipcs)
-                # Sort branch/prefetcher entries for this policy by IPC in ascending order.
                 sorted_items = sorted(data[trace][policy].items(), key=lambda x: x[1])
-                # Select Worst, Intermediary (median) and Best.
                 worst = sorted_items[0]
                 best = sorted_items[-1]
                 intermediary = sorted_items[len(sorted_items) // 2]
                 selected_items = [worst, intermediary, best]
-                # (They are already in ascending order: worst -> intermediary -> best.)
                 for bp, ipc_val in selected_items:
                     bp_formatted = bp.replace('_', ' | ', 1)
+                    # Remove policy from label:
                     label = bp_formatted
                     x_positions.append(offset)
                     x_labels.append(label)
@@ -736,32 +661,26 @@ def plot_selected_policies_by_trace_top3(selected_policies, save_path):
                 if end_idx >= start_idx:
                     policy_boundaries.append((policy, start_idx, end_idx))
 
-        # Skip if no data for this trace
         if not ipcs:
             continue
 
-        # Compute the y-limit (plus margin at the top for policy labels)
         global_max = max(ipcs)
         top_ylim = global_max * 1.2 if global_max > 0 else 1
         top_margin = top_ylim * 0.2
         new_ylim = top_ylim + top_margin
 
-        # Create a new figure for this trace
         plt.figure(figsize=(28, 11))
         bar_width = 0.8
         extra_spacing = bar_width / 4.0
 
-        # Plot bars
         bars = plt.bar(x_positions, ipcs, width=bar_width, edgecolor='black')
         for i, bar in enumerate(bars):
-            # Use the style mapping per policy.
             policy = bar_policies[i]
             facecolor, hatch = style_mapping.get(policy, ('#AAAAAA', ''))
             bar.set_facecolor(facecolor)
             bar.set_hatch(hatch)
             bar.set_edgecolor('black')
 
-        # Highlight the Best (highest IPC) within each policy group.
         for (policy, start_idx, end_idx) in policy_boundaries:
             group_ipcs = ipcs[start_idx:end_idx + 1]
             local_max = max(group_ipcs)
@@ -785,21 +704,18 @@ def plot_selected_policies_by_trace_top3(selected_policies, save_path):
                     fontweight=fw
                 )
 
-        # X-axis labels and trace title.
         plt.xticks(x_positions, x_labels, rotation=45, ha='right', fontsize=19)
         plt.xlabel('Branch | Prefetcher', fontsize=24)
         plt.ylabel('IPC', fontsize=24)
         plt.title(f"Trace {trace}: Worst, Intermediate, and Best Case Analysis in each Cache Replacement", fontsize=24, fontweight='normal')
         plt.ylim(0, new_ylim)
 
-        # Draw vertical dotted lines between policy groups.
         for i in range(len(policy_boundaries) - 1):
             current = policy_boundaries[i]
             next_group = policy_boundaries[i + 1]
             divider_x = (x_positions[current[2]] + x_positions[next_group[1]]) / 2.0
             plt.vlines(divider_x, 0, new_ylim, colors='black', linestyles='dotted', linewidth=1)
 
-        # Annotate each policy name at the top of its group.
         for (policy, start_idx, end_idx) in policy_boundaries:
             seg_left = x_positions[start_idx] - bar_width * 0.5 - extra_spacing
             seg_right = x_positions[end_idx] + bar_width * 0.5 + extra_spacing
@@ -809,11 +725,9 @@ def plot_selected_policies_by_trace_top3(selected_policies, save_path):
                      fontsize=24, fontweight='bold', color='blue')
 
         plt.tight_layout()
-        # Construct the final filename with the trace name appended.
-        final_filename = f"{save_path}_{trace}.png"
-        # Uncomment the next line to save the figure instead of (or in addition to) showing it.
-        plt.savefig(final_filename)
-        #plt.show()
+        final_filename = f"{save_path}{trace}.png"
+        #plt.savefig(final_filename)
+        plt.show()
 
 
 def plot_top3_by_trace():
@@ -828,14 +742,12 @@ def plot_top3_by_trace():
       - The x-axis label shows "Branch | Prefetcher (Policy)".
       - The trace name is placed at the top of its group.
     """
-    # First, determine the set (and sorted list) of policies so we can assign each a consistent style.
     policies_set = set()
     for trace in data:
         for policy in data[trace]:
             policies_set.add(policy)
     policies_list = sorted(list(policies_set))
     
-    # Define a mapping for policy styles (using grayscale and simple hatch patterns)
     grayscale_colors = ['#000000', '#555555', '#AAAAAA', '#FFFFFF']
     hatch_patterns = ['', '-', '++', 'xx']
     policy_styles = {}
@@ -845,19 +757,16 @@ def plot_top3_by_trace():
             'hatch': hatch_patterns[i % len(hatch_patterns)]
         }
     
-    # Prepare lists that will hold the data for plotting all bars
-    x_positions = []      # x position of each bar
-    x_labels = []         # labels (will show "Branch | Prefetcher (Policy)")
-    ipcs = []             # IPC value for each bar
-    bar_policies = []     # the policy associated with each bar (for styling)
-    group_centers = []    # (center, trace) for each trace group (used to put the trace name)
-    group_indices = []    # list of lists, each containing indices of bars belonging to a trace group
-    offset = 0            # running x position counter
+    x_positions = []
+    x_labels = []
+    ipcs = []
+    bar_policies = []
+    group_centers = []
+    group_indices = []
+    offset = 0
 
-    # Process each trace (group) in sorted order
     for trace in sorted(data.keys()):
         bars_in_trace = []
-        # For each policy in the trace, add its branch/prefetcher entries
         for policy, bp_data in data[trace].items():
             for bp, ipc in bp_data.items():
                 bars_in_trace.append((policy, bp, ipc))
@@ -865,37 +774,29 @@ def plot_top3_by_trace():
         if not bars_in_trace:
             continue
         
-        # Sort all bars in this trace by IPC in descending order and take the top 3.
         bars_in_trace.sort(key=lambda x: x[2], reverse=True)
         top_bars = bars_in_trace[:3]
         
-        # Record indices for this trace’s bars
         group_start_index = len(x_positions)
         for policy, bp, ipc in top_bars:
-            # Format the branch/prefetcher label: replace the first underscore with " | "
             bp_formatted = bp.replace('_', ' | ', 1)
-            # Also include the policy in the label so that it is clear which result came from which policy.
-            label = f'{bp_formatted}\n({policy})'
+            # Remove the policy portion so the label is only branch/prefetcher:
+            label = bp_formatted
             x_positions.append(offset)
             x_labels.append(label)
             ipcs.append(ipc)
             bar_policies.append(policy)
             offset += 1
         group_end_index = len(x_positions) - 1
-        # Compute the group center (using the x positions of the first and last bar in the group)
         group_center = (x_positions[group_start_index] + x_positions[group_end_index]) / 2.0
         group_centers.append((group_center, trace))
         group_indices.append(list(range(group_start_index, len(x_positions))))
-        # Add extra spacing between trace groups
         offset += 1
 
-    # Create the figure
     plt.figure(figsize=(14, 8))
     
-    # Plot bars with a default white fill and black edges.
     bars = plt.bar(x_positions, ipcs, color='white', edgecolor='black')
     
-    # Now update each bar’s appearance based on its associated policy.
     for i, bar in enumerate(bars):
         policy = bar_policies[i]
         style = policy_styles.get(policy, {'color': 'gray', 'hatch': ''})
@@ -903,20 +804,14 @@ def plot_top3_by_trace():
         bar.set_hatch(style['hatch'])
         bar.set_edgecolor('black')
     
-    # Get the default bar width (default is 0.8)
     bar_width = bars[0].get_width() if bars else 0.8
-    extra_spacing = bar_width / 4.0  # extra margin for the dashed rectangles
-    
-    # Set y-axis limit: 20% above the highest IPC value.
+    extra_spacing = bar_width / 4.0
     global_max = max(ipcs) if ipcs else 0
     top_ylim = global_max * 1.2 if global_max > 0 else 1
     plt.ylim(0, top_ylim)
     
-    # A margin from the top for writing the trace name
     trace_margin = top_ylim * 0.06
     
-    # For each trace group, annotate each bar with its IPC value.
-    # Highlight the highest value in each group (green and bold).
     for group in group_indices:
         group_ipcs = [ipcs[i] for i in group]
         if not group_ipcs:
@@ -941,13 +836,11 @@ def plot_top3_by_trace():
                 fontweight=font_weight
             )
     
-    # Set x-axis labels with a 45° rotation for readability.
     plt.xticks(x_positions, x_labels, rotation=45, ha='right', fontsize=10)
-    plt.xlabel('Branch | Prefetcher (Policy)', fontsize=14)
+    plt.xlabel('Branch | Prefetcher', fontsize=14)
     plt.ylabel('IPC', fontsize=14)
     plt.title('Top 3 Branch/Prefetcher Combinations by IPC for Each Trace', fontsize=16)
     
-    # Write each trace name near the top of its group.
     for center, trace in group_centers:
         plt.text(
             center,
@@ -960,7 +853,6 @@ def plot_top3_by_trace():
             color='blue'
         )
     
-    # Draw dashed rectangles around each trace group.
     ax = plt.gca()
     for group in group_indices:
         left_index = group[0]
@@ -982,6 +874,7 @@ def plot_top3_by_trace():
     plt.tight_layout()
     plt.show()
 
+
 def plot_4ipc_by_trace(path):
     """
     Para cada trace:
@@ -999,14 +892,12 @@ def plot_4ipc_by_trace(path):
     (onde a formatação de "Branch | Prefetcher" é feita substituindo somente o primeiro underscore).
     """
     
-    # Determinar o conjunto de policies e associar estilos (cor e hatch) para cada uma
     policies_set = set()
     for trace in data:
         for policy in data[trace]:
             policies_set.add(policy)
     policies_list = sorted(list(policies_set))
     
-    # Paleta de cores em tons de cinza e hatch patterns simples
     grayscale_colors = ['#000000', '#555555', '#AAAAAA', '#FFFFFF']
     hatch_patterns = ['', '-', '++', 'xx']
     policy_styles = {}
@@ -1016,43 +907,30 @@ def plot_4ipc_by_trace(path):
             'hatch': hatch_patterns[i % len(hatch_patterns)]
         }
     
-    # Listas para acumular os dados de todas as barras
-    x_positions = []      # posição x de cada barra
-    x_labels = []         # rótulo de cada barra (formato "Branch | Prefetcher (Policy)")
-    ipcs = []             # valor do IPC de cada barra
-    bar_policies = []     # policy associada a cada barra (para estilo)
-    group_centers = []    # (centro, trace) para cada grupo, para posicionar o nome do trace
-    group_indices = []    # lista de índices de barras que pertencem a cada trace
-    offset = 0            # contador de posição x
+    x_positions = []
+    x_labels = []
+    ipcs = []
+    bar_policies = []
+    group_centers = []
+    group_indices = []
+    offset = 0
     
-    # Processa cada trace (em ordem alfabética)
     for trace in sorted(data.keys()):
-        # Agregar todas as entradas do trace: cada entrada é (policy, branch_prefetcher, ipc)
         entradas = []
         for policy, bp_data in data[trace].items():
             for bp, ipc in bp_data.items():
                 entradas.append((policy, bp, ipc))
                 
-        # Se não houver pelo menos 4 entradas, pule este trace
         if len(entradas) < 4:
             continue
         
-        # Ordena as entradas pelo IPC (do menor para o maior)
         entradas.sort(key=lambda x: x[2])
-        
-        # Seleciona o pior (primeiro) e o melhor (último)
         pior = entradas[0]
         melhor = entradas[-1]
-        
-        # Seleciona os candidatos intermediários (excluindo pior e melhor)
         intermediarios = entradas[1:-1]
-        
-        # Calcula um valor mediano (usando o IPC do elemento central dos intermediários)
         mediana = intermediarios[len(intermediarios)//2][2]
-        # Ordena os intermediários pela distância em módulo do valor mediano
         intermediarios_ordenados = sorted(intermediarios, key=lambda x: abs(x[2] - mediana))
         
-        # Seleciona dois candidatos intermediários com policies diferentes
         candidatos = []
         policies_usadas = set()
         for candidato in intermediarios_ordenados:
@@ -1062,21 +940,17 @@ def plot_4ipc_by_trace(path):
             if len(candidatos) == 2:
                 break
         
-        # Se não foram encontrados dois candidatos com policies diferentes, pula o trace
         if len(candidatos) < 2:
             continue
         
-        # Agrupa as 4 entradas: pior, os 2 candidatos e o melhor
         entradas_final = [pior, candidatos[0], candidatos[1], melhor]
-        # Ordena as 4 entradas em ordem crescente de IPC para melhor visualização
         entradas_final.sort(key=lambda x: x[2])
         
-        # Registra as entradas deste trace
         group_start_index = len(x_positions)
         for policy, bp, ipc in entradas_final:
-            # Formata o rótulo: substitui apenas o primeiro underscore por " | "
             bp_formatado = bp.replace('_', ' | ', 1)
-            label = f'{bp_formatado} | {policy}'
+            # Remove the policy portion from the label:
+            label = bp_formatado
             x_positions.append(offset)
             x_labels.append(label)
             ipcs.append(ipc)
@@ -1086,16 +960,12 @@ def plot_4ipc_by_trace(path):
         center = (x_positions[group_start_index] + x_positions[group_end_index]) / 2.0
         group_centers.append((center, trace))
         group_indices.append(list(range(group_start_index, len(x_positions))))
-        # Espaçamento extra entre os grupos
         offset += 1
         
-    # Cria a figura
     plt.figure(figsize=(25, 11))
     
-    # Plota as barras inicialmente com preenchimento branco e borda preta
     barras = plt.bar(x_positions, ipcs, color='white', edgecolor='black')
     
-    # Ajusta o estilo de cada barra de acordo com sua policy
     for i, barra in enumerate(barras):
         policy = bar_policies[i]
         estilo = policy_styles.get(policy, {'color': 'gray', 'hatch': ''})
@@ -1103,21 +973,16 @@ def plot_4ipc_by_trace(path):
         barra.set_hatch(estilo['hatch'])
         barra.set_edgecolor('black')
     
-    # Determina a largura da barra (padrão é 0.8)
     largura_barra = barras[0].get_width() if barras else 0.8
     extra_spacing = largura_barra / 4.0
     
-    # Ajusta o limite do eixo y (20% acima do maior valor)
     max_global = max(ipcs) if ipcs else 0
     top_ylim = max_global * 1.2 if max_global > 0 else 1
     plt.ylim(0, top_ylim)
     
-    # Margem para posicionar o nome do trace na parte superior
     trace_margin = top_ylim * 0.06
     
-    # Para cada grupo (trace), anota o valor do IPC sobre cada barra e destaca o melhor (verde, negrito)
     for grupo in group_indices:
-        # O melhor é a barra com maior IPC neste grupo
         grupo_ipcs = [ipcs[i] for i in grupo]
         grupo_melhor = max(grupo_ipcs)
         for i in grupo:
@@ -1139,14 +1004,12 @@ def plot_4ipc_by_trace(path):
                 fontweight=peso_fonte
             )
     
-    # Configura os rótulos do eixo x
     plt.xticks(x_positions, x_labels, rotation=45, ha='right', fontsize=18)
-    plt.xlabel('Branch | Prefetcher | Policy', fontsize=24)
+    plt.xlabel('Branch | Prefetcher', fontsize=24)
     plt.ylabel('IPC', fontsize=24)
     plt.title('In each Trace: Worst, 2 Intermediate IPCs and Best', fontsize=24)
     
     ax = plt.gca()
-    # Posiciona o nome de cada trace na parte superior de seu grupo
     for center, trace in group_centers:
         plt.text(
             center,
@@ -1159,7 +1022,6 @@ def plot_4ipc_by_trace(path):
             color='blue'
         )
     
-    # Desenha retângulos tracejados ao redor de cada grupo (trace)
     for grupo in group_indices:
         left_index = grupo[0]
         right_index = grupo[-1]
@@ -1178,58 +1040,20 @@ def plot_4ipc_by_trace(path):
         ax.add_patch(rect)
     
     plt.tight_layout()
-    
-    # Construct the final filename with the trace name appended
-    #final_filename = f"{path}_{trace}.png"
     plt.savefig(path)
-    
     plt.show()
 
 
+#########################################################
+#                 EXAMPLE USAGE                         #
+#########################################################
 
-group1 = {
-                "bip",
-                "hawkeye",
-                "fifo",
-                "emissary",
-                "pcn",
-                "rlr",
-                "drrip",
-                "lru",
-                "ship",
-                "mockingjay",
-                "random"
-}
+# Example: If you want to call the function that plots top3 combos per trace:
+group1 = {"BIPRP", "DRRIP", "FIFORP", "LRURP", "RandomRP", "SHiPMemRP"}
+path = f"/mnt/c/Users/Raffael/Desktop/Results_Report/GEM5/Sample{Sample}/"
 
-algos = "_".join(sorted(group1))      
-path = f"/mnt/c/Users/Raffael/Desktop/Results_Report/Champsim/Sample{Sample}/{trace_path}"
+plot_selected_policies_by_trace_top3(group1, path)
 
-#plot_selected_policies_by_trace_top3(group1,path)
-
-'''
-# Group 2: policies "lru", "fifo", "random", "bip drrip", "ship"
-group2 = {"lru", "fifo", "random", "bip", "drrip", "ship"}
-algos = "_".join(sorted(group2))      
-path = f"/mnt/c/Users/Raffael/Desktop/ChampSim_Outputs/CHAMPSIM_{trace_path}/Sample{Sample}/{algos}"
-plot_selected_policies_by_trace(group2,path)
-
-# Group 3: All remaining policies (those not in group2)
-all_policies = set()
-for trace, policies in data.items():
-    for pol in policies.keys():
-        all_policies.add(pol)
-group3 = all_policies - group2  # subtracting the policies already plotted in group 2
-algos = "_".join(sorted(group3))   
-path = f"/mnt/c/Users/Raffael/Desktop/ChampSim_Outputs/CHAMPSIM_{trace_path}/Sample{Sample}/{algos}"   
-plot_selected_policies_by_trace(group3,path)
-'''
-#plot_policy_group_by_trace()
-
-path = f"/mnt/c/Users/Raffael/Desktop/Results_Report/Champsim/Sample{Sample}/{trace_path}"
-#plot_4ipc_by_trace(path)
-# Call the function to generate the plots
-#plot_branch_prefetcher_across_policies()
-
-#plot_eachtrace()
-plot_everyone()
-#plot_10bestIPC()
+# Or just call plot_everyone, plot_eachtrace, etc., as you like.
+# plot_everyone()
+# plot_10bestIPC()

@@ -19,11 +19,26 @@ steps:
 
 1. Create a `.c` or `.cpp` file and place it in the `codes` folder.
 
-2. Use the Makefile to convert the program into a trace file:
+2. Compile this program with Makefile:
+    ```bash
+    make compile
+    ```
+    Or use:
+    ```bash
+    make compile_from_NPB BENCHMARK=BT WORKLOAD=A
+    ```
+    With BENCHMARK the program type and WORKLOAD the Class of NPB-CPP repository.
+
+3. Use the Makefile to convert the program into a trace file:
 
     ```bash
     make convert-pin SRC=<program>
     ```
+    or 
+    ```bash
+    make convert-pin
+    ```
+    To convert all the binaries from codes/bin to traces.
 
 To modify the architecture's configuration, edit the `champsim_config.json` file
 located in the `param` folder.
@@ -64,22 +79,7 @@ Choose between the Samples inside of sim_outputs to plot, for example:
     ```
 Change `Sample4` with the other Sample you have.
 
-### Adding Metrics
-
-1. **Single-Field Metrics**:  
-   To include a metric with a single field (e.g., `BRANCH_DIRECT_JUMP`, 
-   `BRANCH_INDIRECT`, etc.), simply add it to the `metrics_to_collect` list in 
-   the `graphic.py` script.
-
-2. **Multi-Field Metrics**:  
-   For metrics with multiple fields (e.g., `cpu0_DTLB TRANSLATION`, 
-   `cpu0_L1I TOTAL`, etc.), the Python script requires additional handling to 
-   properly process and visualize the data.
-
 ### Running the Script
-
-After adding the desired metrics to `metrics_to_collect`, you can execute the 
-script with the following command:
 
 1. Run the following command to generate all the graphics inside results folder:
 

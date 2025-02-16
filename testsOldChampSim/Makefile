@@ -57,12 +57,12 @@ compile:
 				*.cpp) \
 					base_file=$$(basename $$file .cpp); \
 					echo "Compiling $$file as C++ source"; \
-					$(CPP) $(CFLAGS) -o $$base_file $$file; \
+					$(CPP) $(CFLAGS) -o $(BIN_DIR)/$$base_file $$file; \
 					;; \
 				*.c) \
 					base_file=$$(basename $$file .c); \
 					echo "Compiling $$file as C source"; \
-					$(CC) $(CFLAGS) -o $$base_file $$file; \
+					$(CC) $(CFLAGS) -o $(BIN_DIR)/$$base_file $$file; \
 					;; \
 				*) \
 					echo "Skipping unknown file type: $$file"; \
@@ -72,9 +72,9 @@ compile:
 	else \
 		for src in $(SRC); do \
 			if [ -f $(CODES_DIR)/$$src.cpp ]; then \
-				$(CPP) $(CFLAGS) -o $$src $(CODES_DIR)/$$src.cpp; \
+				$(CPP) $(CFLAGS) -o $(BIN_DIR)/$$src $(CODES_DIR)/$$src.cpp; \
 			elif [ -f $(CODES_DIR)/$$src.c ]; then \
-				$(CC) $(CFLAGS) -o $$src $(CODES_DIR)/$$src.c; \
+				$(CC) $(CFLAGS) -o $(BIN_DIR)/$$src $(CODES_DIR)/$$src.c; \
 			else \
 				echo "Source file for $$src not found in $(CODES_DIR)"; \
 				exit 1; \
@@ -116,7 +116,7 @@ trace: check-src
 	@echo "Simulation Finished"
 
 trace-all:
-	@python3 champsim.py 11 $(CHAMPSIM_DIR) $(TRACES_DIR) \
+	@python3 champsim.py 20 $(CHAMPSIM_DIR) $(TRACES_DIR) \
 	$(PARAM)/champsim_config.json $(SIMULATION_OUTPUTS) \
 	$(if $(filter-out 0,$(WARMUP_INSTRUCTIONS)),$(WARMUP_INSTRUCTIONS),none) \
 	$(if $(filter-out 0,$(SIMULATION_INSTRUCTIONS)),$(SIMULATION_INSTRUCTIONS),none)

@@ -77,7 +77,6 @@ class ScarabExecutor:
         Modify the textual PARAMS.in file to reflect the new sets/ways/latency
         for L1I, L1D, L2 (mlc), and LLC (which is listed as `--l1_size` in the file).
         """
-        time.sleep(0.5)
         self.S1_semaphore.acquire()
         # 1) Read original param file
         with open(self.param, "r") as f:
@@ -126,7 +125,6 @@ class ScarabExecutor:
     # Existing replacement modifications
     ###########################################################################
     def modify_replacement_cache(self, new_policy):
-        time.sleep(0.5)
         self.S2_semaphore.acquire()
 
         with open(self.param, 'r') as file:
@@ -149,7 +147,6 @@ class ScarabExecutor:
             file.write(updated_content)
 
     def modify_branch_predictor(self, new_branch):
-        time.sleep(0.5)
         self.S3_semaphore.acquire()
 
         with open(self.param, 'r') as file:
@@ -178,7 +175,6 @@ class ScarabExecutor:
         - "1": Enables --pref_stridepc_on
         - "2": Enables --pref_ghb_on
         """
-        time.sleep(0.5)
         self.S4_semaphore.acquire()
 
         prefetcher_map = {
@@ -204,7 +200,7 @@ class ScarabExecutor:
             file.write(content)
             
     def modify_replacement_policy(self, new_policy):
-        time.sleep(0.5)
+        time.sleep(0.2)
         self.S5_semaphore.acquire()
         with open(self.param, 'r') as file:
             content = file.read()
@@ -216,6 +212,7 @@ class ScarabExecutor:
             file.write(updated_content)
 
     def write_file(self):
+        time.sleep(3)
         scarab_output_path = os.path.join(self.scarab_path, "src/PARAMS.in")
         local_output_path = os.path.join(os.getcwd(), "PARAMS.in")
 
@@ -226,13 +223,6 @@ class ScarabExecutor:
         for output_path in [scarab_output_path, local_output_path]:
             with open(output_path, 'w') as modified_file:
                 modified_file.write(original_content)
-
-        # Release the semaphores if needed
-        self.S1_semaphore.release()
-        self.S2_semaphore.release()
-        self.S3_semaphore.release()
-        self.S4_semaphore.release()
-        self.S5_semaphore.release()
         
 
     ###########################################################################
@@ -251,12 +241,19 @@ class ScarabExecutor:
             "--fetch_off_path_ops", "0",
             f"--cbp_trace_r0={trace_path}",
             f"--inst_limit={self.simulation_instructions}",
+            #f"--warmup={self.warmup_instructions}",
             f"--memtrace_modules_log={bin_dir}",
             f"--output_dir={trace_output_dir}"
         ]
 
         print(f"[INFO] Executing Scarab for {trace_file} with command:")
         print("       " + " ".join(command))
+
+        self.S1_semaphore.release()
+        self.S2_semaphore.release()
+        self.S3_semaphore.release()
+        self.S4_semaphore.release()
+        self.S5_semaphore.release()
 
         subprocess.run(command)
 
@@ -377,31 +374,19 @@ def main():
     # Example cache configurations
     L1I_config = [
         CacheConfig(64, 8, 4),
-        #CacheConfig(64, 8, 4),
         CacheConfig(64, 8, 4),
-        CacheConfig(64, 8, 4),
-        #CacheConfig(64, 8, 4),
     ]
     L1D_config = [
         CacheConfig(64, 8, 4),
-        #CacheConfig(64, 12, 5),
         CacheConfig(64, 8, 4),
-        CacheConfig(64, 8, 4),
-        #CacheConfig(64, 12, 4),
     ]
     L2_config = [
         CacheConfig(512, 8, 8),
-        #CacheConfig(820, 8, 8),
         CacheConfig(512, 8, 8),
-        CacheConfig(512, 8, 8),
-        #CacheConfig(1024, 8, 15),
     ]
     LLC_config = [
         CacheConfig(2048, 16, 20),
-        #CacheConfig(2048, 16, 22),
         CacheConfig(4096, 16, 21),
-        CacheConfig(8192, 16, 22),
-        #CacheConfig(2048, 16, 45),
     ]
 
     # Construct the ScarabExecutor with these lists
