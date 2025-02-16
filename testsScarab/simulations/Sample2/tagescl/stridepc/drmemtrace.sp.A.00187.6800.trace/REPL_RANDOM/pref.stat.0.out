@@ -1,0 +1,208 @@
+/* -*- Mode: c -*- */
+####################################################################################################
+Core 0
+####################################################################################################
+Cumulative:        Cycles: 433021635             Instructions: 600000000             IPC: 1.38561
+
+PREF_DL0REQ_QUEUE_HIT_BY_DEMAND                      0                              0              
+
+PREF_UMLC_REQ_QUEUE_HIT_BY_DEMAND                    0                              0              
+
+PREF_UL1REQ_QUEUE_HIT_BY_DEMAND                      0                              0              
+
+PREF_DL0REQ_QUEUE_FULL                               0                              0              
+
+PREF_UMLC_REQ_QUEUE_FULL                             0                              0              
+
+PREF_UL1REQ_QUEUE_FULL                         1208002                        1208002              
+
+PREF_DC_HIT_NOSEND                                   0                              0              
+
+PREF_WBQDC_HIT_NOSEND                                0                              0              
+
+PREF_MLCQ_STALL                                      0                              0              
+
+PREF_L1Q_STALL                                       0                              0              
+
+PREF_UMLC_REQ_SEND_QUEUE_STALL                       0                              0              
+
+PREF_UL1REQ_SEND_QUEUE_STALL                 148406429                      148406429              
+
+PREF_UMLC_REQ_QUEUE_SENTREQ                          0                              0              
+
+PREF_UL1REQ_QUEUE_SENTREQ                      3933307                        3933307              
+
+PREF_NEWREQ_MATCHED                             187498                         187498              
+
+PREF_UMLC_REQ_QUEUE_MATCHED_REQ                      0                              0              
+
+PREF_UL1REQ_QUEUE_MATCHED_REQ                  1377727                        1377727              
+
+PREF_DL0REQ_QUEUE_MATCHED_REQ                        0                              0              
+
+L1_PREF_HIT                                    1985721                        1985721              
+
+L1_PREF_UNIQUE_HIT                             1550451                        1550451              
+
+L1_PREF_LATE                                    166885                         166885              
+
+L1_LATE_PREF_CYCLES                          202767386                      202767386              
+
+L1_LATE_PREF_CYCLES_DIST_0                        9164        5.491%             9164        5.491%
+L1_LATE_PREF_CYCLES_DIST_100                     30737       18.418%            30737       18.418%
+L1_LATE_PREF_CYCLES_DIST_200                     35021       20.985%            35021       20.985%
+L1_LATE_PREF_CYCLES_DIST_300                     41876       25.093%            41876       25.093%
+L1_LATE_PREF_CYCLES_DIST_400                      1008        0.604%             1008        0.604%
+L1_LATE_PREF_CYCLES_DIST_500                       934        0.560%              934        0.560%
+L1_LATE_PREF_CYCLES_DIST_600                       460        0.276%              460        0.276%
+L1_LATE_PREF_CYCLES_DIST_700                       474        0.284%              474        0.284%
+L1_LATE_PREF_CYCLES_DIST_800                       611        0.366%              611        0.366%
+L1_LATE_PREF_CYCLES_DIST_900                       947        0.567%              947        0.567%
+L1_LATE_PREF_CYCLES_DIST_1000                     1063        0.637%             1063        0.637%
+L1_LATE_PREF_CYCLES_DIST_1100                      651        0.390%              651        0.390%
+L1_LATE_PREF_CYCLES_DIST_1200                      504        0.302%              504        0.302%
+L1_LATE_PREF_CYCLES_DIST_1300                      609        0.365%              609        0.365%
+L1_LATE_PREF_CYCLES_DIST_1400                      454        0.272%              454        0.272%
+L1_LATE_PREF_CYCLES_DIST_1500                      432        0.259%              432        0.259%
+L1_LATE_PREF_CYCLES_DIST_1600                      363        0.218%              363        0.218%
+L1_LATE_PREF_CYCLES_DIST_1700                      315        0.189%              315        0.189%
+L1_LATE_PREF_CYCLES_DIST_1800                      300        0.180%              300        0.180%
+L1_LATE_PREF_CYCLES_DIST_1900                      257        0.154%              257        0.154%
+L1_LATE_PREF_CYCLES_DIST_2000                    40705       24.391%            40705       24.391%
+                                                166885      100.000%           166885      100.000%
+                                                  6.80         8.37              6.80         8.37
+
+MLC_PREF_HIT                                      4429                           4429              
+
+MLC_PREF_UNIQUE_HIT                                  0                              0              
+
+MLC_PREF_LATE                                        0                              0              
+
+PREF_HYBRID_SEL_0                                    0         -nan%                0         -nan%
+PREF_HYBRID_SEL_1                                    0         -nan%                0         -nan%
+PREF_HYBRID_SEL_2                                    0         -nan%                0         -nan%
+PREF_HYBRID_SEL_3                                    0         -nan%                0         -nan%
+PREF_HYBRID_SEL_4                                    0         -nan%                0         -nan%
+PREF_HYBRID_SEL_5                                    0         -nan%                0         -nan%
+PREF_HYBRID_SEL_6                                    0         -nan%                0         -nan%
+                                                     0         -nan%                0         -nan%
+                                                  -nan         -nan              -nan         -nan
+
+PREF_DISTANCE_1                                      1        0.300%                1        0.300%
+PREF_DISTANCE_2                                      2        0.601%                2        0.601%
+PREF_DISTANCE_3                                      2        0.601%                2        0.601%
+PREF_DISTANCE_4                                      3        0.901%                3        0.901%
+PREF_DISTANCE_5                                    325       97.598%              325       97.598%
+PREF_DISTANCE_6                                      0        0.000%                0        0.000%
+PREF_DISTANCE_7                                      0        0.000%                0        0.000%
+PREF_DISTANCE_8                                      0        0.000%                0        0.000%
+PREF_DISTANCE_9                                      0        0.000%                0        0.000%
+PREF_DISTANCE_10                                     0        0.000%                0        0.000%
+                                                   333      100.000%              333      100.000%
+                                                  3.95         0.29              3.95         0.29
+
+PREF_REPL_MRU                                        0         -nan%                0         -nan%
+PREF_REPL_MID                                        0         -nan%                0         -nan%
+PREF_REPL_LOWQTR                                     0         -nan%                0         -nan%
+PREF_REPL_LRU                                        0         -nan%                0         -nan%
+                                                     0         -nan%                0         -nan%
+                                                  -nan         -nan              -nan         -nan
+
+PREF_REPL_MOVEDOWN                                   0         -nan%                0         -nan%
+PREF_REPL_MOVEUP                                     0         -nan%                0         -nan%
+                                                     0         -nan%                0         -nan%
+                                                  -nan         -nan              -nan         -nan
+
+PREF_COV_1                                           0         -nan%                0         -nan%
+PREF_COV_2                                           0         -nan%                0         -nan%
+PREF_COV_3                                           0         -nan%                0         -nan%
+PREF_COV_4                                           0         -nan%                0         -nan%
+PREF_COV_5                                           0         -nan%                0         -nan%
+PREF_COV_6                                           0         -nan%                0         -nan%
+PREF_COV_7                                           0         -nan%                0         -nan%
+PREF_COV_8                                           0         -nan%                0         -nan%
+PREF_COV_9                                           0         -nan%                0         -nan%
+PREF_COV_10                                          0         -nan%                0         -nan%
+                                                     0         -nan%                0         -nan%
+                                                  -nan         -nan              -nan         -nan
+
+PREF_POL_1                                           0        0.000%                0        0.000%
+PREF_POL_2                                           0        0.000%                0        0.000%
+PREF_POL_3                                           0        0.000%                0        0.000%
+PREF_POL_4                                           0        0.000%                0        0.000%
+PREF_POL_5                                           0        0.000%                0        0.000%
+PREF_POL_6                                           0        0.000%                0        0.000%
+PREF_POL_7                                           0        0.000%                0        0.000%
+PREF_POL_8                                           0        0.000%                0        0.000%
+PREF_POL_9                                           0        0.000%                0        0.000%
+PREF_POL_10                                        333      100.000%              333      100.000%
+                                                   333      100.000%              333      100.000%
+                                                  9.00         9.01              9.00         9.01
+
+PREF_ACC_1                                         242       72.673%              242       72.673%
+PREF_ACC_2                                          15        4.505%               15        4.505%
+PREF_ACC_3                                           3        0.901%                3        0.901%
+PREF_ACC_4                                           2        0.601%                2        0.601%
+PREF_ACC_5                                           2        0.601%                2        0.601%
+PREF_ACC_6                                           2        0.601%                2        0.601%
+PREF_ACC_7                                           5        1.502%                5        1.502%
+PREF_ACC_8                                           1        0.300%                1        0.300%
+PREF_ACC_9                                           1        0.300%                1        0.300%
+PREF_ACC_10                                         60       18.018%               60       18.018%
+                                                   333      100.000%              333      100.000%
+                                                  1.89         3.22              1.89         3.22
+
+PREF_TIMELY_1                                       40       12.012%               40       12.012%
+PREF_TIMELY_2                                        0        0.000%                0        0.000%
+PREF_TIMELY_3                                        0        0.000%                0        0.000%
+PREF_TIMELY_4                                        0        0.000%                0        0.000%
+PREF_TIMELY_5                                        0        0.000%                0        0.000%
+PREF_TIMELY_6                                        0        0.000%                0        0.000%
+PREF_TIMELY_7                                        2        0.601%                2        0.601%
+PREF_TIMELY_8                                        4        1.201%                4        1.201%
+PREF_TIMELY_9                                        5        1.502%                5        1.502%
+PREF_TIMELY_10                                     282       84.685%              282       84.685%
+                                                   333      100.000%              333      100.000%
+                                                  7.86         7.32              7.86         7.32
+
+PREF_UNUSED_EVICT                               451827                         451827              
+
+PREF_REGION_SENT                                     0                              0              
+
+PREF_REGION_USEFUL                                   0                              0              
+
+PREF_REGION_EVICT                                    0                              0              
+
+PREF_PFPOL                                           0                              0              
+
+PREF_PHASE_NEWPHASE_DET                              0                              0              
+
+PREF_PHASE_NEWPHASE_NOTVALID                         0                              0              
+
+PREF_PHASE_SENTPREF                                  0                              0              
+
+PREF_PHASE_OVERWRITE_PAGE                            0                              0              
+
+PREF_UPDATE_COUNT                                  333                            333              
+
+PREF_ACC1_HT_HP                                      0        0.000%                0        0.000%
+PREF_ACC1_HT_LP                                    132       39.640%              132       39.640%
+PREF_ACC1_LT_HP                                      0        0.000%                0        0.000%
+PREF_ACC1_LT_LP                                    120       36.036%              120       36.036%
+PREF_ACC2_HT_HP                                      0        0.000%                0        0.000%
+PREF_ACC2_HT_LP                                      0        0.000%                0        0.000%
+PREF_ACC2_LT_HP                                      0        0.000%                0        0.000%
+PREF_ACC2_LT_LP                                     76       22.823%               76       22.823%
+PREF_ACC3_HT_HP                                      0        0.000%                0        0.000%
+PREF_ACC3_HT_LP                                      0        0.000%                0        0.000%
+PREF_ACC3_LT_HP                                      0        0.000%                0        0.000%
+PREF_ACC3_LT_LP                                      0        0.000%                0        0.000%
+PREF_ACC4_HT_HP                                      0        0.000%                0        0.000%
+PREF_ACC4_HT_LP                                      1        0.300%                1        0.300%
+PREF_ACC4_LT_HP                                      0        0.000%                0        0.000%
+PREF_ACC4_LT_LP                                      4        1.201%                4        1.201%
+                                                   333      100.000%              333      100.000%
+                                                  3.29         2.71              3.29         2.71
+
+
+
