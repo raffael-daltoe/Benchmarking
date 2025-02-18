@@ -84,7 +84,7 @@ configure_intel_pin() {
 configure_scarab() {
     echo "###############    Starting Scarab Configuration    ###############"
     switch_gcc_version "$GCC_VERSION_7" "$GPP_VERSION_7"
-    cd tools/scarab/src
+    cd scarab/src
     make -j"${nproc}" -s
     cd deps/dynamorio/
     cmake . && make -j"${nproc}"
@@ -95,14 +95,14 @@ configure_scarab() {
 configure_gem5() {
     echo "###############    Starting GEM5 Configuration    ###############"
     switch_gcc_version "$GCC_VERSION_11" "$GPP_VERSION_11"
-    
-    cp -r ../Branch/gshare-gem5/* tools/gem5/src/cpu/pred/ 
 
-    cp ../Fixldgem5/ld-linux.so.3 /lib/
+    cp -r ../Branch/gshare-gem5/* gem5/src/cpu/pred/ 
 
-    cd tools/gem5
-    echo | scons build/ARM/gem5.opt -j"${nproc}"  # Skip the prompt
-    cd ..
+    #sudo cp ../Fixldgem5/ld-linux.so.3 /lib/
+
+    cd gem5
+    echo | scons build/X86/gem5.opt -j"${nproc}"  # Skip the prompt
+    cd ../..
 }
 
 # Main script execution
